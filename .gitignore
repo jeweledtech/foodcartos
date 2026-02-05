@@ -1,0 +1,155 @@
+# FoodCartOS .gitignore
+
+# ===========================================
+# Python
+# ===========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# ===========================================
+# Node.js (Frontend)
+# ===========================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Build outputs
+frontend/dist/
+frontend/build/
+frontend/.next/
+frontend/out/
+
+# ===========================================
+# Environment & Secrets
+# ===========================================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.local.env
+
+# Never commit secrets
+secrets/
+*.pem
+*.key
+*.crt
+
+# ===========================================
+# IDE & Editor
+# ===========================================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# ===========================================
+# OS Files
+# ===========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ===========================================
+# Testing & Coverage
+# ===========================================
+.coverage
+htmlcov/
+.tox/
+.nox/
+.pytest_cache/
+.mypy_cache/
+coverage.xml
+*.cover
+*.coverage
+
+# ===========================================
+# Documentation
+# ===========================================
+site/
+docs/_build/
+
+# ===========================================
+# Database
+# ===========================================
+*.db
+*.sqlite
+*.sqlite3
+
+# Local database dumps
+*.sql.gz
+*.dump
+
+# ===========================================
+# Logs
+# ===========================================
+logs/
+*.log
+log/
+
+# ===========================================
+# Hardware Agent
+# ===========================================
+# Local SQLite on Raspberry Pi
+hardware/data/*.db
+
+# Hardware-specific config (generated during setup)
+hardware/config.local.json
+
+# ===========================================
+# Temporary Files
+# ===========================================
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+
+# ===========================================
+# Docker
+# ===========================================
+docker-compose.override.yml
+
+# ===========================================
+# Misc
+# ===========================================
+.cache/
+*.pid
+*.seed
+*.pid.lock

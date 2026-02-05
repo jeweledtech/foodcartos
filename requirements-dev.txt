@@ -1,0 +1,35 @@
+# FoodCartOS Development Dependencies
+
+# Include production dependencies
+-r requirements.txt
+
+# Testing
+pytest==7.4.4
+pytest-asyncio==0.23.3
+pytest-cov==4.1.0
+pytest-mock==3.12.0
+faker==22.2.0
+factory-boy==3.3.0
+
+# Code Quality
+black==24.1.0
+ruff==0.1.13
+mypy==1.8.0
+pre-commit==3.6.0
+
+# Type Stubs
+types-python-dateutil==2.8.19.20240106
+types-pytz==2023.3.1.1
+
+# Documentation
+mkdocs==1.5.3
+mkdocs-material==9.5.4
+mkdocstrings[python]==0.24.0
+
+# Debugging
+ipython==8.20.0
+ipdb==0.13.13
+
+# Profiling
+py-spy==0.3.14
+memory-profiler==0.61.0
