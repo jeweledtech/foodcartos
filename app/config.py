@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     SUPABASE_URL: str = ""
     SUPABASE_ANON_KEY: str = ""
     SUPABASE_SERVICE_KEY: str = ""
+    DATABASE_SCHEMA: str = "foodcartos"  # Allows sharing project with other apps
 
     # Square
     SQUARE_ACCESS_TOKEN: str = ""
