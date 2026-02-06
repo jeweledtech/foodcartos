@@ -66,6 +66,15 @@ Poncho was losing $19,760/year by going to the courthouse on Wednesdays ($510) i
 
 > "In two to five years, I'm going to be the new In-N-Out." — Poncho (on vision)
 
+## Database Architecture
+
+FoodCartOS uses a dedicated `foodcartos` schema within the shared `jeweledtech` Supabase project. This allows:
+- Complete isolation from other apps (like agentic-framework)
+- Future integration possibility by granting cross-schema access
+- Single Supabase project, multiple applications
+
+**Future consideration:** The agentic-framework may eventually be granted access to the foodcartos schema to provide AI-powered features (location recommendations, pattern analysis, automated marketing).
+
 ## Commands
 
 ```bash
