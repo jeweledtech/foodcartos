@@ -4,13 +4,19 @@ FoodCartOS Configuration
 Loads configuration from environment variables with sensible defaults.
 """
 
-from typing import List
+from typing import List, Optional
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",  # Ignore extra env vars not defined here
+    )
 
     # Application
     APP_ENV: str = "development"
@@ -35,7 +41,9 @@ class Settings(BaseSettings):
     SUPABASE_URL: str = ""
     SUPABASE_ANON_KEY: str = ""
     SUPABASE_SERVICE_KEY: str = ""
-    DATABASE_SCHEMA: str = "foodcartos"  # Allows sharing project with other apps
+    SUPABASE_ACCESS_TOKEN: Optional[str] = None
+    DATABASE_URL: Optional[str] = None
+    DATABASE_SCHEMA: str = "foodcartos"
 
     # Square
     SQUARE_ACCESS_TOKEN: str = ""
@@ -56,9 +64,20 @@ class Settings(BaseSettings):
     # n8n
     N8N_WEBHOOK_BASE_URL: str = ""
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    # Hardware Agent
+    AGENT_API_URL: str = ""
+    AGENT_HARDWARE_ID: str = ""
+    AGENT_ORG_ID: str = ""
+    GPS_UPDATE_INTERVAL_SECONDS: int = 300
+    GPS_GEOFENCE_RADIUS_METERS: int = 100
+    PHOTO_QUALITY: int = 85
+    PHOTO_MAX_WIDTH: int = 1920
+    SYNC_INTERVAL_SECONDS: int = 60
+    OFFLINE_QUEUE_MAX_SIZE: int = 1000
+
+    # Development
+    VERIFY_SSL: bool = True
+    LOG_LEVEL: str = "INFO"
 
 
 # Global settings instance
