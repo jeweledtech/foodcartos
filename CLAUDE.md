@@ -22,19 +22,24 @@ Poncho was losing $19,760/year by going to the courthouse on Wednesdays ($510) i
 - **Backend:** Python 3.11+, FastAPI, Supabase (PostgreSQL)
 - **Automation:** n8n workflows
 - **Hardware:** Raspberry Pi 4, SIM7600A-H (cellular+GPS), camera
-- **Frontend:** Mobile-first PWA (not yet built)
+- **Frontend:** FastAPI + Jinja2 templates + HTMX + PicoCSS (server-rendered, zero JS frameworks)
+- **Auth:** Dual — session cookies for pages (`SessionMiddleware`), JWT for API routes
 - **Integrations:** Square POS, Twilio SMS
 
 ## Key Files
 
 | File | Purpose |
 |------|---------|
+| `app/routers/pages.py` | All HTML page routes (onboarding, dashboard, settings) |
+| `app/services/auth.py` | Session auth: register, login, bcrypt password hashing |
+| `app/services/supabase.py` | Supabase service layer with admin mode |
+| `app/templates/` | Jinja2 templates (base, onboarding/*, dashboard/*, settings/*) |
+| `app/routers/locations.py` | Core location intelligence feature |
+| `app/routers/quality.py` | Photo verification system |
 | `docs/personas/README.md` | Deep customer psychology (Poncho's fears, hopes, quotes) |
 | `docs/business-models/README.md` | 5 monetization strategies |
 | `docs/case-studies/eatfirecraft.md` | Complete case study with ROI |
 | `docs/session-logs/` | Detailed session logs for continuity |
-| `app/routers/locations.py` | Core location intelligence feature |
-| `app/routers/quality.py` | Photo verification system |
 
 ## Development Status
 
@@ -46,12 +51,16 @@ Poncho was losing $19,760/year by going to the courthouse on Wednesdays ($510) i
 - Supabase service layer (app/services/supabase.py)
 - Square integration service (app/services/square.py)
 - EatFireCraft seed data (534 transactions, 29 quality checks)
+- Frontend: 7-step onboarding wizard, dashboard, settings pages (app/routers/pages.py)
+- Session auth with bcrypt password hashing (app/services/auth.py)
+- PWA manifest and service worker (app/static/)
 
 **TODO:**
 - [ ] n8n workflow JSON files
-- [ ] Frontend PWA
 - [ ] Hardware agent code for Raspberry Pi
 - [ ] Platform-to-store mapping (connect DoorDash store IDs to our locations)
+- [ ] Apply social_media migration to Supabase (`social_accounts` table)
+- [ ] Apply orders migration to Supabase (`orders` table)
 
 ## Design Principles
 
@@ -107,6 +116,14 @@ admin_org_service = OrganizationService(use_admin=True)
 - **SMS Pre-orders** - Text ORDER for menu, parse natural language orders
 
 All platforms normalize to a unified order format stored in the `orders` table.
+
+## Gotchas
+
+- **Square SDK v33+**: Use `from square import Square` and `Square(token=...)` — old `Client` import is gone
+- **bcrypt**: Use `bcrypt.hashpw()`/`bcrypt.checkpw()` directly — passlib 1.7.4 is incompatible with bcrypt >=4.1
+- **Page routes need admin services**: `use_admin=True` bypasses RLS since session cookies don't carry JWT claims
+- **User auth in JSONB**: `password_hash`, `onboarding_complete`, `onboarding_step` stored in `users.settings` column (not dedicated columns)
+- **Missing tables**: `social_accounts` and `orders` tables require migrations not yet applied — guard queries with try/except
 
 ## Commands
 
