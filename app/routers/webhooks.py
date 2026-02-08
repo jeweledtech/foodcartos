@@ -5,16 +5,26 @@ Handles incoming webhooks from external services:
 - Square (payment events)
 - Twilio (SMS responses)
 - n8n (workflow triggers)
+- Meta (Instagram/Facebook verification)
 """
 
-import hashlib
-import hmac
+import logging
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Header, HTTPException, Request, status
+from fastapi import APIRouter, Header, HTTPException, Query, Request, status
+
+logger = logging.getLogger(__name__)
 
 from app.config import settings
+from app.services.square import verify_webhook_signature, process_payment_webhook
+from app.services.supabase import transaction_service, organization_service, order_service
+from app.services.delivery_platforms import (
+    doordash_service,
+    ubereats_service,
+    grubhub_service,
+    sms_preorder_service,
+)
 
 router = APIRouter()
 
@@ -22,35 +32,6 @@ router = APIRouter()
 # ===========================================
 # Square Webhooks
 # ===========================================
-
-
-def verify_square_signature(
-    payload: bytes,
-    signature: str,
-    signature_key: str,
-    notification_url: str,
-) -> bool:
-    """
-    Verify Square webhook signature.
-
-    Square signs webhooks with HMAC-SHA256.
-    """
-    # Construct the string to sign
-    string_to_sign = notification_url.encode() + payload
-
-    # Calculate expected signature
-    expected_signature = hmac.new(
-        signature_key.encode(),
-        string_to_sign,
-        hashlib.sha256,
-    ).digest()
-
-    # Compare (timing-safe)
-    try:
-        provided = bytes.fromhex(signature)
-        return hmac.compare_digest(expected_signature, provided)
-    except ValueError:
-        return False
 
 
 @router.post("/square")
@@ -80,12 +61,7 @@ async def square_webhook(
             )
 
         notification_url = str(request.url)
-        if not verify_square_signature(
-            body,
-            x_square_signature,
-            settings.SQUARE_WEBHOOK_SIGNATURE_KEY,
-            notification_url,
-        ):
+        if not verify_webhook_signature(body, x_square_signature, notification_url):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid Square signature",
@@ -97,21 +73,20 @@ async def square_webhook(
     event_type = payload.get("type")
     data = payload.get("data", {}).get("object", {})
 
+    # Get merchant/org info from webhook
+    merchant_id = payload.get("merchant_id")
+
+    # TODO: Look up org_id from merchant_id mapping
+    # For now, use a default or first org
+    orgs = await organization_service.list_all()
+    org_id = orgs[0]["id"] if orgs else None
+
+    if not org_id:
+        return {"status": "ignored", "reason": "No organization found"}
+
     if event_type == "payment.completed":
-        # Extract transaction data
-        payment = data.get("payment", {})
-
-        transaction = {
-            "square_id": payment.get("id"),
-            "amount": payment.get("total_money", {}).get("amount", 0) / 100,  # Convert cents
-            "timestamp": datetime.now(timezone.utc),
-            # TODO: Look up cart_id and location_id from Square location
-        }
-
-        # TODO: Save to database
-        # TODO: Trigger n8n workflow for real-time updates
-
-        return {"status": "processed", "transaction_id": transaction["square_id"]}
+        result = await process_payment_webhook(data, org_id)
+        return {"status": "processed", **result}
 
     elif event_type == "payment.updated":
         # Handle updates (tips added, etc.)
@@ -127,6 +102,32 @@ async def square_webhook(
     return {"status": "ignored", "event": event_type}
 
 
+@router.post("/square/test")
+async def square_test_webhook(request: Request):
+    """
+    Test endpoint for Square webhooks (no signature verification).
+
+    Use this for testing in development.
+    """
+    payload = await request.json()
+
+    # Get first org for testing
+    orgs = await organization_service.list_all()
+    org_id = orgs[0]["id"] if orgs else None
+
+    if not org_id:
+        return {"status": "error", "reason": "No organization found. Run seed script first."}
+
+    event_type = payload.get("type", "payment.completed")
+    data = payload.get("data", {}).get("object", payload)
+
+    if event_type == "payment.completed":
+        result = await process_payment_webhook(data, org_id)
+        return {"status": "processed", **result}
+
+    return {"status": "received", "event": event_type}
+
+
 # ===========================================
 # Twilio Webhooks
 # ===========================================
@@ -137,47 +138,52 @@ async def twilio_sms_webhook(request: Request):
     """
     Handle incoming SMS from Twilio.
 
-    Processes customer responses:
-    - "ORDER" - Start pre-order flow
+    Processes customer responses using SMS pre-order service:
+    - "ORDER" - Send menu and start pre-order flow
     - "STOP" - Unsubscribe
     - "HELP" - Send help message
-    - Other - Forward to relevant workflow
+    - Other text - Parse as order (e.g., "2 dirty dogs, 1 drink")
     """
     # Parse form data (Twilio sends as form, not JSON)
     form_data = await request.form()
 
     from_number = form_data.get("From")
-    body = form_data.get("Body", "").strip().upper()
+    body = form_data.get("Body", "").strip()
     to_number = form_data.get("To")
 
-    # Handle commands
-    if body == "STOP":
-        # Unsubscribe - Twilio handles this automatically
-        # but we should update our records
-        # TODO: Mark customer as unsubscribed
-        return {"status": "unsubscribed"}
+    # Get org for this phone number (TODO: map from Twilio number)
+    orgs = await organization_service.list_all()
+    org_id = orgs[0]["id"] if orgs else None
 
-    elif body == "ORDER" or body.startswith("ORDER"):
-        # Pre-order request
-        # TODO: Trigger pre-order workflow in n8n
-        return {
-            "status": "order_initiated",
-            "from": from_number,
-        }
+    if not org_id:
+        return {"status": "ignored", "reason": "No organization found"}
 
-    elif body == "HELP":
-        # Send help message
-        # TODO: Send help response via Twilio
-        return {"status": "help_sent"}
+    # Use SMS pre-order service to handle the message
+    result = await sms_preorder_service.handle_incoming_sms(
+        from_number=from_number,
+        body=body,
+        org_id=org_id,
+    )
 
-    else:
-        # Unknown command - could be a reply to a conversation
-        # TODO: Forward to n8n for processing
-        return {
-            "status": "received",
-            "from": from_number,
-            "body": body,
-        }
+    # If an order was parsed, save it
+    if result.get("action") == "order_received" and result.get("order"):
+        order = result["order"]
+
+        # Save order to database
+        saved_order = await order_service.create(**order.to_dict())
+
+        if saved_order:
+            # Confirm the order via SMS
+            order.id = saved_order["id"]
+            await sms_preorder_service.confirm_order(order)
+
+            return {
+                "status": "order_created",
+                "order_id": saved_order["id"],
+                "from": from_number,
+            }
+
+    return result
 
 
 @router.post("/twilio/status")
@@ -245,6 +251,205 @@ async def n8n_alert(request: Request):
 
 
 # ===========================================
+# Delivery Platform Webhooks
+# ===========================================
+
+
+@router.post("/doordash")
+async def doordash_webhook(
+    request: Request,
+    x_doordash_signature: Optional[str] = Header(None, alias="X-DoorDash-Signature"),
+):
+    """
+    Handle DoorDash order webhooks.
+
+    Events:
+    - order.created: New order from DoorDash marketplace
+    - order.status_updated: Order status changed
+    - delivery.status_updated: Driver status update
+    """
+    body = await request.body()
+
+    # Verify signature in production
+    if settings.APP_ENV == "production":
+        if not x_doordash_signature:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing signature")
+        if not doordash_service.verify_webhook(body, x_doordash_signature):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid signature")
+
+    payload = await request.json()
+    event_type = payload.get("event_type", "")
+
+    # Get org (TODO: map from DoorDash store ID)
+    orgs = await organization_service.list_all()
+    org_id = orgs[0]["id"] if orgs else None
+
+    if not org_id:
+        return {"status": "ignored", "reason": "No organization found"}
+
+    if event_type == "order.created":
+        order = doordash_service.parse_order(payload)
+        order.org_id = org_id
+
+        # Save to database
+        saved_order = await order_service.create(**order.to_dict())
+
+        return {"status": "processed", "order_id": saved_order.get("id") if saved_order else None}
+
+    elif event_type in ["order.status_updated", "delivery.status_updated"]:
+        # Update existing order
+        external_id = payload.get("external_delivery_id")
+        existing = await order_service.get_by_external_id("doordash", external_id)
+        if existing:
+            order = doordash_service.parse_order(payload)
+            await order_service.update_status(existing["id"], order.status.value)
+
+        return {"status": "processed", "event": event_type}
+
+    return {"status": "ignored", "event": event_type}
+
+
+@router.post("/ubereats")
+async def ubereats_webhook(
+    request: Request,
+    x_uber_signature: Optional[str] = Header(None, alias="X-Uber-Signature"),
+):
+    """
+    Handle UberEats order webhooks.
+
+    Events:
+    - orders.notification: New order or order update
+    """
+    body = await request.body()
+
+    # Verify signature in production
+    if settings.APP_ENV == "production":
+        if not x_uber_signature:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing signature")
+        if not ubereats_service.verify_webhook(body, x_uber_signature):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid signature")
+
+    payload = await request.json()
+    event_type = payload.get("event_type", "")
+
+    # Get org (TODO: map from UberEats store ID)
+    orgs = await organization_service.list_all()
+    org_id = orgs[0]["id"] if orgs else None
+
+    if not org_id:
+        return {"status": "ignored", "reason": "No organization found"}
+
+    if event_type == "orders.notification":
+        order = ubereats_service.parse_order(payload)
+        order.org_id = org_id
+
+        # Check if order exists
+        existing = await order_service.get_by_external_id("ubereats", order.external_id)
+
+        if existing:
+            # Update existing order
+            await order_service.update_status(existing["id"], order.status.value)
+            return {"status": "updated", "order_id": existing["id"]}
+        else:
+            # Create new order
+            saved_order = await order_service.create(**order.to_dict())
+            return {"status": "created", "order_id": saved_order.get("id") if saved_order else None}
+
+    return {"status": "ignored", "event": event_type}
+
+
+@router.post("/grubhub")
+async def grubhub_webhook(
+    request: Request,
+    x_grubhub_signature: Optional[str] = Header(None, alias="X-Grubhub-Signature"),
+):
+    """
+    Handle Grubhub order webhooks.
+    """
+    body = await request.body()
+
+    # Verify signature in production
+    if settings.APP_ENV == "production":
+        if not x_grubhub_signature:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing signature")
+        if not grubhub_service.verify_webhook(body, x_grubhub_signature):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid signature")
+
+    payload = await request.json()
+    event_type = payload.get("event_type", "order.new")
+
+    # Get org (TODO: map from Grubhub restaurant ID)
+    orgs = await organization_service.list_all()
+    org_id = orgs[0]["id"] if orgs else None
+
+    if not org_id:
+        return {"status": "ignored", "reason": "No organization found"}
+
+    if event_type in ["order.new", "order.created"]:
+        order = grubhub_service.parse_order(payload)
+        order.org_id = org_id
+
+        saved_order = await order_service.create(**order.to_dict())
+        return {"status": "processed", "order_id": saved_order.get("id") if saved_order else None}
+
+    elif event_type == "order.status_updated":
+        external_id = payload.get("order_id")
+        existing = await order_service.get_by_external_id("grubhub", external_id)
+        if existing:
+            order = grubhub_service.parse_order(payload)
+            await order_service.update_status(existing["id"], order.status.value)
+
+        return {"status": "processed", "event": event_type}
+
+    return {"status": "ignored", "event": event_type}
+
+
+# ===========================================
+# Meta Webhooks (Instagram / Facebook)
+# ===========================================
+
+
+@router.get("/meta")
+async def meta_webhook_verify(
+    hub_mode: str = Query(None, alias="hub.mode"),
+    hub_verify_token: str = Query(None, alias="hub.verify_token"),
+    hub_challenge: str = Query(None, alias="hub.challenge"),
+):
+    """
+    Meta webhook verification (GET challenge).
+
+    Required by Meta to register webhook URLs for Instagram and Facebook.
+    Meta sends a GET with hub.mode=subscribe, hub.verify_token, and hub.challenge.
+    We verify the token and echo back the challenge.
+    """
+    if hub_mode == "subscribe" and hub_verify_token == settings.SECRET_KEY:
+        return int(hub_challenge)
+
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Verification failed")
+
+
+@router.post("/meta")
+async def meta_webhook_event(request: Request):
+    """
+    Handle Meta webhook events (Instagram/Facebook).
+
+    Events include: comments, mentions, story insights, etc.
+    """
+    payload = await request.json()
+    object_type = payload.get("object")  # "instagram" or "page"
+    entries = payload.get("entry", [])
+
+    # Log the event for now — specific handling can be added later
+    for entry in entries:
+        changes = entry.get("changes", [])
+        for change in changes:
+            field = change.get("field")
+            logger.info("Meta webhook: %s/%s", object_type, field)
+
+    return {"status": "received"}
+
+
+# ===========================================
 # Hardware Agent Webhooks
 # ===========================================
 
@@ -273,7 +478,7 @@ async def agent_sync(request: Request):
     return {
         "status": "synced",
         "hardware_id": hardware_id,
-        "records_processed": len(data),
+        "records_processed": len(data) if isinstance(data, list) else 1,
     }
 
 
@@ -297,8 +502,8 @@ async def agent_register(request: Request):
         "status": "registered",
         "hardware_id": hardware_id,
         "config": {
-            "sync_interval_seconds": 60,
-            "gps_interval_seconds": 300,
+            "sync_interval_seconds": settings.SYNC_INTERVAL_SECONDS,
+            "gps_interval_seconds": settings.GPS_UPDATE_INTERVAL_SECONDS,
             "api_url": settings.API_BASE_URL,
         },
     }

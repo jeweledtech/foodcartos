@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Your Locations — FoodCartOS{% endblock %}
+
+{% block nav %}{% endblock %}
+
+{% block content %}
+{% include "components/step_indicator.html" %}
+
+<hgroup>
+  <h2>Your Locations</h2>
+  <p>Where do your carts operate? Add the spots you sell at.</p>
+</hgroup>
+
+{% if locations %}
+<h3>Current Locations</h3>
+{% for loc in locations %}
+<article>
+  <strong>{{ loc.name }}</strong>
+  {% if loc.address %}<br><small>{{ loc.address }}</small>{% endif %}
+  {% if loc.location_type %}<span class="badge badge-info">{{ loc.location_type }}</span>{% endif %}
+</article>
+{% endfor %}
+{% endif %}
+
+<details {% if not locations %}open{% endif %}>
+  <summary>Add a Location</summary>
+  <form method="post" action="/onboarding/step/3" hx-post="/onboarding/step/3" hx-target="body" class="onboarding-form">
+    <label for="location_name">Location Name</label>
+    <input type="text" id="location_name" name="location_name" placeholder="e.g. Solano County Courthouse" required>
+
+    <label for="location_address">Address (optional)</label>
+    <input type="text" id="location_address" name="location_address" placeholder="580 Texas St, Fairfield, CA">
+
+    <label for="location_type">Location Type</label>
+    <select id="location_type" name="location_type">
+      <option value="">Select type...</option>
+      <option value="courthouse">Courthouse</option>
+      <option value="dmv">DMV</option>
+      <option value="farmers_market">Farmers Market</option>
+      <option value="event">Event / Festival</option>
+      <option value="business_park">Business Park</option>
+      <option value="school">School / University</option>
+      <option value="other">Other</option>
+    </select>
+
+    <input type="hidden" name="latitude" value="0.0">
+    <input type="hidden" name="longitude" value="0.0">
+
+    <button type="submit">Add Location</button>
+  </form>
+</details>
+
+<div class="step-nav">
+  <a href="/onboarding/step/2" class="secondary">&larr; Back</a>
+  <form method="post" action="/onboarding/step/3/next" hx-post="/onboarding/step/3/next" hx-target="body" style="margin:0;">
+    <button type="submit">Continue &rarr;</button>
+  </form>
+</div>
+{% endblock %}
+
+{% block footer %}{% endblock %}

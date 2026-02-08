@@ -40,16 +40,18 @@ Poncho was losing $19,760/year by going to the courthouse on Wednesdays ($510) i
 
 **Completed:**
 - Project structure and documentation
-- FastAPI routers (stub implementations)
-- Database schema and RLS policies
+- FastAPI routers with real Supabase integrations
+- Database schema and RLS policies (migrations applied)
 - Business model documentation
+- Supabase service layer (app/services/supabase.py)
+- Square integration service (app/services/square.py)
+- EatFireCraft seed data (534 transactions, 29 quality checks)
 
 **TODO:**
-- [ ] Supabase service layer implementations
-- [ ] Square webhook handlers (full implementation)
 - [ ] n8n workflow JSON files
 - [ ] Frontend PWA
 - [ ] Hardware agent code for Raspberry Pi
+- [ ] Platform-to-store mapping (connect DoorDash store IDs to our locations)
 
 ## Design Principles
 
@@ -75,17 +77,54 @@ FoodCartOS uses a dedicated `foodcartos` schema within the shared `jeweledtech` 
 
 **Future consideration:** The agentic-framework may eventually be granted access to the foodcartos schema to provide AI-powered features (location recommendations, pattern analysis, automated marketing).
 
+## Service Architecture
+
+The Supabase service layer (`app/services/supabase.py`) provides:
+
+- **SupabaseService** base class with schema-aware table access
+- **Admin mode** (`use_admin=True`) bypasses RLS for admin operations
+- Service instances for each entity: `organization_service`, `user_service`, `location_service`, `cart_service`, `transaction_service`, `quality_check_service`
+
+```python
+# For normal API usage (respects RLS):
+from app.services import organization_service
+
+# For admin operations (bypasses RLS):
+from app.services.supabase import OrganizationService
+admin_org_service = OrganizationService(use_admin=True)
+```
+
+**Square Integration** (`app/services/square.py`):
+- Webhook signature verification
+- Payment webhook processing
+- Historical transaction sync
+
+**Delivery Platforms** (`app/services/delivery_platforms/`):
+- **Base class** with unified order model (NormalizedOrder)
+- **DoorDash** - Marketplace + Drive API (use DoorDash drivers)
+- **UberEats** - OAuth2 auth, order webhooks, status updates
+- **Grubhub** - Order webhooks, status updates
+- **SMS Pre-orders** - Text ORDER for menu, parse natural language orders
+
+All platforms normalize to a unified order format stored in the `orders` table.
+
 ## Commands
 
 ```bash
 # Run backend
-python -m uvicorn app.main:app --reload
+source venv/bin/activate && python -m uvicorn app.main:app --reload
+
+# Run seed script
+source venv/bin/activate && python scripts/seed_eatfirecraft.py
 
 # Run tests
 pytest
 
 # Format code
 black . && ruff check .
+
+# Push migrations to Supabase
+npx supabase db push --linked
 ```
 
 ## Session Continuity

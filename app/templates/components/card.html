@@ -1,0 +1,8 @@
+{# Reusable metric card — pass label, value, and optional detail #}
+<article class="metric-card">
+  <header>{{ label }}</header>
+  <p class="metric-value">{{ value }}</p>
+  {% if detail %}
+  <footer><small>{{ detail }}</small></footer>
+  {% endif %}
+</article>

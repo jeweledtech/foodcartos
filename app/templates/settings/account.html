@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Account Settings — FoodCartOS{% endblock %}
+
+{% block content %}
+<hgroup>
+  <h2>Account Settings</h2>
+  <p>Update your profile and business information.</p>
+</hgroup>
+
+<form method="post" action="/settings/account" hx-post="/settings/account" hx-target="body">
+  <label for="name">Your Name</label>
+  <input type="text" id="name" name="name" value="{{ user.name }}" required>
+
+  <label for="email">Email</label>
+  <input type="email" id="email" name="email" value="{{ user.email }}" required>
+
+  <label for="phone">Phone</label>
+  <input type="tel" id="phone" name="phone" value="{{ user.phone or '' }}">
+
+  <label for="org_name">Business Name</label>
+  <input type="text" id="org_name" name="org_name" value="{{ org.name }}">
+
+  <button type="submit">Save Changes</button>
+</form>
+
+<a href="/dashboard">&larr; Back to Dashboard</a>
+{% endblock %}

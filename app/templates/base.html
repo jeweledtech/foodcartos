@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}FoodCartOS{% endblock %}</title>
+
+  <!-- PicoCSS — classless mobile-first styling -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+
+  <!-- Custom overrides -->
+  <link rel="stylesheet" href="/static/css/styles.css">
+
+  <!-- PWA -->
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#e25822">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+  {% block head %}{% endblock %}
+</head>
+<body>
+  {% block nav %}
+    {% include "components/nav.html" %}
+  {% endblock %}
+
+  <main class="container">
+    {% if flash_message %}
+    <article class="flash flash-{{ flash_type|default('info') }}">
+      {{ flash_message }}
+    </article>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  {% block footer %}
+    {% include "components/footer.html" %}
+  {% endblock %}
+
+  <!-- HTMX — dynamic behavior via HTML attributes -->
+  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+
+  <!-- Service worker registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/static/service-worker.js');
+    }
+  </script>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

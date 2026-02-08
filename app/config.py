@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     SECRET_KEY: str = "change-me-in-production"
 
+    # Session
+    SESSION_SECRET_KEY: str = "change-me-in-production-session-key"
+    SESSION_MAX_AGE: int = 604800  # 7 days
+
     # URLs
     API_BASE_URL: str = "http://localhost:8000"
     FRONTEND_URL: str = "http://localhost:3000"
@@ -64,6 +68,23 @@ class Settings(BaseSettings):
     # n8n
     N8N_WEBHOOK_BASE_URL: str = ""
 
+    # DoorDash
+    DOORDASH_DEVELOPER_ID: str = ""
+    DOORDASH_KEY_ID: str = ""
+    DOORDASH_SIGNING_SECRET: str = ""
+    DOORDASH_ENVIRONMENT: str = "sandbox"  # sandbox or production
+
+    # UberEats
+    UBEREATS_CLIENT_ID: str = ""
+    UBEREATS_CLIENT_SECRET: str = ""
+    UBEREATS_WEBHOOK_SECRET: str = ""
+    UBEREATS_ENVIRONMENT: str = "sandbox"
+
+    # Grubhub
+    GRUBHUB_API_KEY: str = ""
+    GRUBHUB_WEBHOOK_SECRET: str = ""
+    GRUBHUB_ENVIRONMENT: str = "sandbox"
+
     # Hardware Agent
     AGENT_API_URL: str = ""
     AGENT_HARDWARE_ID: str = ""
@@ -74,6 +95,18 @@ class Settings(BaseSettings):
     PHOTO_MAX_WIDTH: int = 1920
     SYNC_INTERVAL_SECONDS: int = 60
     OFFLINE_QUEUE_MAX_SIZE: int = 1000
+
+    # Meta (Instagram + Facebook)
+    META_APP_ID: str = ""
+    META_APP_SECRET: str = ""
+
+    # TikTok
+    TIKTOK_CLIENT_KEY: str = ""
+    TIKTOK_CLIENT_SECRET: str = ""
+
+    # Google Business Profile
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
 
     # Development
     VERIFY_SSL: bool = True

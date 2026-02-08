@@ -245,20 +245,45 @@ async def get_quality_leaderboard(
 @router.patch("/checks/{check_id}")
 async def update_check_status(
     check_id: str,
-    status: str = Query(..., description="New status: approved or rejected"),
+    new_status: str = Query(..., alias="status", description="New status: approved or rejected"),
     notes: Optional[str] = Query(None, description="Reviewer notes"),
+    org_id: Optional[str] = Query(None, description="Organization ID (for social trigger)"),
+    owner_phone: Optional[str] = Query(None, description="Owner phone (for social SMS approval)"),
 ):
     """
     Update quality check status (owner review).
 
     Allows owner to approve or reject submitted photos.
+    On approval, triggers social media post generation if accounts are connected.
     """
     valid_statuses = ["approved", "rejected"]
-    if status not in valid_statuses:
+    if new_status not in valid_statuses:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid status. Must be one of: {valid_statuses}",
         )
 
     # TODO: Implement with Supabase
-    return {"id": check_id, "status": status, "notes": notes}
+    result = {"id": check_id, "status": new_status, "notes": notes}
+
+    # Trigger social media post on approval
+    if new_status == "approved" and org_id:
+        try:
+            from app.services.social_media import content_generator_service, post_publisher_service
+
+            quality_check = {
+                "id": check_id,
+                "check_type": "quality check",
+                "photo_url": None,  # TODO: fetch from DB once implemented
+            }
+            post = await content_generator_service.generate_from_quality_check(
+                quality_check, org_id
+            )
+            if post.target_platforms:
+                await post_publisher_service.handle_new_post(post, org_id, owner_phone)
+                result["social_post"] = "triggered"
+        except Exception:
+            # Social media is a complementary feature — don't fail the quality check
+            pass
+
+    return result

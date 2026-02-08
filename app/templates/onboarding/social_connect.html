@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Social Media — FoodCartOS{% endblock %}
+
+{% block nav %}{% endblock %}
+
+{% block content %}
+{% include "components/step_indicator.html" %}
+
+<hgroup>
+  <h2>Connect Social Media</h2>
+  <p>Auto-post quality check photos and milestones to your social accounts. <strong>This is optional.</strong></p>
+</hgroup>
+
+{% if accounts %}
+<h3>Connected Accounts</h3>
+{% for acct in accounts %}
+<article class="platform-card">
+  <div class="platform-info">
+    <strong>{{ acct.platform | capitalize }}</strong>
+    {% if acct.platform_username %}<small>{{ acct.platform_username }}</small>{% endif %}
+  </div>
+  <span class="badge badge-success">Connected</span>
+</article>
+{% endfor %}
+{% endif %}
+
+<h3>Connect a Platform</h3>
+
+<article>
+  <a href="{{ settings.API_BASE_URL }}/api/social/instagram/authorize?state={{ session.org_id }}%7Conboarding" role="button" class="outline" style="width:100%;">
+    Connect Instagram
+  </a>
+</article>
+
+<article>
+  <a href="{{ settings.API_BASE_URL }}/api/social/facebook/authorize?state={{ session.org_id }}%7Conboarding" role="button" class="outline" style="width:100%;">
+    Connect Facebook
+  </a>
+</article>
+
+<article>
+  <a href="{{ settings.API_BASE_URL }}/api/social/tiktok/authorize?state={{ session.org_id }}%7Conboarding" role="button" class="outline" style="width:100%;">
+    Connect TikTok
+  </a>
+</article>
+
+<article>
+  <a href="{{ settings.API_BASE_URL }}/api/social/google/authorize?state={{ session.org_id }}%7Conboarding" role="button" class="outline" style="width:100%;">
+    Connect Google Business
+  </a>
+</article>
+
+<form method="post" action="/onboarding/step/6" hx-post="/onboarding/step/6" hx-target="body">
+  <div class="step-nav">
+    <a href="/onboarding/step/5" class="secondary">&larr; Back</a>
+    <button type="submit">{% if accounts %}Continue{% else %}Skip for now{% endif %} &rarr;</button>
+  </div>
+</form>
+{% endblock %}
+
+{% block footer %}{% endblock %}

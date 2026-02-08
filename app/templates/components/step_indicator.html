@@ -1,0 +1,12 @@
+{# Onboarding progress indicator — shows step N of total_steps #}
+<div class="step-indicator" role="progressbar" aria-valuenow="{{ current_step }}" aria-valuemin="1" aria-valuemax="{{ total_steps }}">
+  {% for i in range(1, total_steps + 1) %}
+  <div class="step {% if i < current_step %}done{% elif i == current_step %}active{% endif %}">
+    <span class="step-number">{{ i }}</span>
+  </div>
+  {% if i < total_steps %}
+  <div class="step-line {% if i < current_step %}done{% endif %}"></div>
+  {% endif %}
+  {% endfor %}
+</div>
+<p class="step-label">Step {{ current_step }} of {{ total_steps }}</p>

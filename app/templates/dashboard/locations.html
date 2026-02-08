@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Location Performance — FoodCartOS{% endblock %}
+
+{% block content %}
+<hgroup>
+  <h2>Location Performance</h2>
+  <p>Last 30 days of data for each location.</p>
+</hgroup>
+
+{% if performances %}
+{% for loc in performances %}
+<article>
+  <header>
+    <strong>{{ loc.name }}</strong>
+    {% if loc.location_type %}<span class="badge badge-info">{{ loc.location_type }}</span>{% endif %}
+  </header>
+  {% if loc.address %}<small>{{ loc.address }}</small>{% endif %}
+  <div class="card-grid" style="margin-top:0.75rem;">
+    <div class="metric-card">
+      <header>Avg/Day</header>
+      <p class="metric-value">${{ "%.0f" | format(loc.avg_daily) }}</p>
+    </div>
+    <div class="metric-card">
+      <header>Total</header>
+      <p class="metric-value">${{ "%.0f" | format(loc.total_revenue) }}</p>
+    </div>
+    <div class="metric-card">
+      <header>Days</header>
+      <p class="metric-value">{{ loc.visit_days }}</p>
+    </div>
+  </div>
+</article>
+{% endfor %}
+{% else %}
+<article>
+  <p>No location data yet. Start selling and your performance metrics will appear here!</p>
+</article>
+{% endif %}
+
+<a href="/dashboard">&larr; Back to Dashboard</a>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Your Carts — FoodCartOS{% endblock %}
+
+{% block nav %}{% endblock %}
+
+{% block content %}
+{% include "components/step_indicator.html" %}
+
+<hgroup>
+  <h2>Name Your Carts</h2>
+  <p>Each cart gets tracked individually for revenue and quality.</p>
+</hgroup>
+
+{% if carts %}
+<h3>Your Carts</h3>
+{% for cart in carts %}
+<article>
+  <strong>{{ cart.name }}</strong>
+  <span class="badge badge-info">{{ cart.status }}</span>
+</article>
+{% endfor %}
+{% endif %}
+
+<details {% if not carts %}open{% endif %}>
+  <summary>Add a Cart</summary>
+  <form method="post" action="/onboarding/step/4" hx-post="/onboarding/step/4" hx-target="body" class="onboarding-form">
+    <label for="cart_name">Cart Name</label>
+    <input type="text" id="cart_name" name="cart_name" placeholder="e.g. Cart 1 — Main" required>
+
+    <button type="submit">Add Cart</button>
+  </form>
+</details>
+
+<div class="step-nav">
+  <a href="/onboarding/step/3" class="secondary">&larr; Back</a>
+  <form method="post" action="/onboarding/step/4/next" hx-post="/onboarding/step/4/next" hx-target="body" style="margin:0;">
+    <button type="submit">Continue &rarr;</button>
+  </form>
+</div>
+{% endblock %}
+
+{% block footer %}{% endblock %}

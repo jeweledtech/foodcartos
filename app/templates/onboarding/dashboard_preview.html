@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}You're All Set! — FoodCartOS{% endblock %}
+
+{% block nav %}{% endblock %}
+
+{% block content %}
+{% include "components/step_indicator.html" %}
+
+<hgroup>
+  <h2>You're All Set!</h2>
+  <p>Here's a preview of your FoodCartOS dashboard.</p>
+</hgroup>
+
+<div class="card-grid">
+  <article class="metric-card">
+    <header>Locations</header>
+    <p class="metric-value">{{ locations | length }}</p>
+  </article>
+  <article class="metric-card">
+    <header>Carts</header>
+    <p class="metric-value">{{ carts | length }}</p>
+  </article>
+  {% if summary and summary.total_revenue > 0 %}
+  <article class="metric-card">
+    <header>Today's Revenue</header>
+    <p class="metric-value">${{ "%.2f" | format(summary.total_revenue) }}</p>
+  </article>
+  {% endif %}
+</div>
+
+{% if locations | length == 0 and carts | length == 0 %}
+<article>
+  <p>No data yet — that's okay! Once you start selling and submitting quality checks, your dashboard will light up with insights like:</p>
+  <ul>
+    <li><strong>"Thursday courthouse makes 74% more than Wednesday"</strong></li>
+    <li><strong>"Cart 2 quality score dropped below 80%"</strong></li>
+    <li><strong>"DMV Tuesday is your best-performing slot"</strong></li>
+  </ul>
+</article>
+{% endif %}
+
+<h3>Next Steps</h3>
+<ul>
+  <li>{% if locations | length > 0 %}&#10003;{% else %}&#9744;{% endif %} Add your selling locations</li>
+  <li>{% if carts | length > 0 %}&#10003;{% else %}&#9744;{% endif %} Name your carts</li>
+  <li>&#9744; Have employees submit their first quality check photos</li>
+  <li>&#9744; Complete a selling day to see revenue insights</li>
+</ul>
+
+<form method="post" action="/onboarding/step/7" hx-post="/onboarding/step/7" hx-target="body">
+  <button type="submit" style="width:100%;">Go to Dashboard</button>
+</form>
+
+<div class="step-nav">
+  <a href="/onboarding/step/6" class="secondary">&larr; Back</a>
+  <span></span>
+</div>
+{% endblock %}
+
+{% block footer %}{% endblock %}

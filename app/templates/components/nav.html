@@ -1,0 +1,14 @@
+<nav class="container">
+  <ul>
+    <li><a href="/dashboard" class="brand"><strong>FoodCartOS</strong></a></li>
+  </ul>
+  <ul>
+    {% if session and session.get("user_id") %}
+    <li><a href="/dashboard">Dashboard</a></li>
+    <li><a href="/settings/account">Settings</a></li>
+    <li><a href="/logout">Logout</a></li>
+    {% else %}
+    <li><a href="/login">Login</a></li>
+    {% endif %}
+  </ul>
+</nav>

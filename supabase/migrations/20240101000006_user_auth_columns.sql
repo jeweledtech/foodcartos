@@ -1,0 +1,11 @@
+-- User authentication fields are stored in the existing `settings` JSONB column
+-- on the users table, rather than as dedicated columns. This avoids the need
+-- for a schema migration while still supporting session-based auth.
+--
+-- Fields stored in settings:
+--   password_hash      TEXT    bcrypt hash
+--   onboarding_complete BOOL   true when wizard is finished
+--   onboarding_step     INT    last completed onboarding step
+--
+-- This migration is intentionally a no-op.
+SELECT 1;

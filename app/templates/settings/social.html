@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Social Media Settings — FoodCartOS{% endblock %}
+
+{% block content %}
+<hgroup>
+  <h2>Social Media</h2>
+  <p>Manage your connected social media accounts and auto-posting settings.</p>
+</hgroup>
+
+{% if accounts %}
+<h3>Connected Accounts</h3>
+{% for acct in accounts %}
+<article class="platform-card" id="account-{{ acct.id }}">
+  <div class="platform-info">
+    <div>
+      <strong>{{ acct.platform | replace("_", " ") | title }}</strong>
+      {% if acct.platform_username %}<br><small>{{ acct.platform_username }}</small>{% endif %}
+    </div>
+    {% if acct.is_active %}
+    <span class="badge badge-success">Active</span>
+    {% else %}
+    <span class="badge badge-danger">Disconnected</span>
+    {% endif %}
+  </div>
+
+  {% if acct.is_active %}
+  <details>
+    <summary>Auto-Approve Settings</summary>
+    <fieldset>
+      {% set s = acct.settings or {} %}
+      <label>
+        <input type="checkbox"
+               hx-patch="/api/social/accounts/{{ acct.id }}/settings"
+               hx-swap="none"
+               hx-vals='{"settings": {"auto_approve_quality_check": true}}'
+               {% if s.get("auto_approve_quality_check") %}checked{% endif %}>
+        Quality check posts
+      </label>
+      <label>
+        <input type="checkbox"
+               hx-patch="/api/social/accounts/{{ acct.id }}/settings"
+               hx-swap="none"
+               hx-vals='{"settings": {"auto_approve_location_arrival": true}}'
+               {% if s.get("auto_approve_location_arrival") %}checked{% endif %}>
+        Location arrival posts
+      </label>
+      <label>
+        <input type="checkbox"
+               hx-patch="/api/social/accounts/{{ acct.id }}/settings"
+               hx-swap="none"
+               hx-vals='{"settings": {"auto_approve_milestone": true}}'
+               {% if s.get("auto_approve_milestone") %}checked{% endif %}>
+        Milestone posts
+      </label>
+    </fieldset>
+  </details>
+
+  <button
+    hx-delete="/api/social/accounts/{{ acct.id }}"
+    hx-target="#account-{{ acct.id }}"
+    hx-swap="outerHTML"
+    hx-confirm="Disconnect {{ acct.platform }}?"
+    class="outline secondary"
+    style="margin-top:0.5rem;"
+  >Disconnect</button>
+  {% endif %}
+</article>
+{% endfor %}
+{% endif %}
+
+<h3>Connect New Platform</h3>
+<div class="card-grid">
+  <a href="{{ settings.API_BASE_URL }}/api/social/instagram/authorize?state={{ session.org_id }}%7Csettings" role="button" class="outline">Instagram</a>
+  <a href="{{ settings.API_BASE_URL }}/api/social/facebook/authorize?state={{ session.org_id }}%7Csettings" role="button" class="outline">Facebook</a>
+  <a href="{{ settings.API_BASE_URL }}/api/social/tiktok/authorize?state={{ session.org_id }}%7Csettings" role="button" class="outline">TikTok</a>
+  <a href="{{ settings.API_BASE_URL }}/api/social/google/authorize?state={{ session.org_id }}%7Csettings" role="button" class="outline">Google Business</a>
+</div>
+
+<a href="/dashboard">&larr; Back to Dashboard</a>
+{% endblock %}

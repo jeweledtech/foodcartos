@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Quality Checks — FoodCartOS{% endblock %}
+
+{% block content %}
+<hgroup>
+  <h2>Quality Checks</h2>
+  <p>Today's photo submissions from your carts.</p>
+</hgroup>
+
+{% if checks %}
+<div class="photo-grid">
+  {% for check in checks %}
+  <article>
+    {% if check.photo_url %}
+    <img src="{{ check.photo_url }}" alt="{{ check.check_type }} photo" loading="lazy">
+    {% else %}
+    <div style="width:100%;aspect-ratio:1;background:#eee;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+      <small>No photo</small>
+    </div>
+    {% endif %}
+    <p>
+      <strong>{{ check.check_type | replace("_", " ") | title }}</strong><br>
+      <small>{{ check.cart_name }}</small>
+    </p>
+    <div id="status-{{ check.id }}">
+      {% if check.status == "pending" %}
+      <form style="display:flex;gap:0.5rem;margin:0;">
+        <button
+          hx-patch="/dashboard/quality/{{ check.id }}"
+          hx-target="#status-{{ check.id }}"
+          hx-swap="innerHTML"
+          hx-vals='{"status": "approved"}'
+          class="outline"
+          style="flex:1;"
+          type="button"
+        >Approve</button>
+        <button
+          hx-patch="/dashboard/quality/{{ check.id }}"
+          hx-target="#status-{{ check.id }}"
+          hx-swap="innerHTML"
+          hx-vals='{"status": "rejected"}'
+          class="outline secondary"
+          style="flex:1;"
+          type="button"
+        >Reject</button>
+      </form>
+      {% elif check.status == "approved" %}
+      <span class="badge badge-success">Approved</span>
+      {% else %}
+      <span class="badge badge-danger">Rejected</span>
+      {% endif %}
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<article>
+  <p>No quality checks submitted today. Checks will appear here as employees submit their daily photos.</p>
+</article>
+{% endif %}
+
+<a href="/dashboard">&larr; Back to Dashboard</a>
+{% endblock %}

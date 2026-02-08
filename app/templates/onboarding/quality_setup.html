@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Quality Checks — FoodCartOS{% endblock %}
+
+{% block nav %}{% endblock %}
+
+{% block content %}
+{% include "components/step_indicator.html" %}
+
+<hgroup>
+  <h2>Quality Checks</h2>
+  <p>Set up daily photo verification so your brand stays consistent — even when you're not there.</p>
+</hgroup>
+
+<form method="post" action="/onboarding/step/5" hx-post="/onboarding/step/5" hx-target="body" class="onboarding-form">
+  <fieldset>
+    <legend><strong>Which checks should employees complete daily?</strong></legend>
+
+    <label>
+      <input type="checkbox" name="checks" value="dirty_water" checked>
+      Dirty water dogs — fresh water in the steamer
+    </label>
+
+    <label>
+      <input type="checkbox" name="checks" value="garlic_butter">
+      Garlic butter buns — toasted and prepped
+    </label>
+
+    <label>
+      <input type="checkbox" name="checks" value="cart_display">
+      Cart display — signage, menu board, cleanliness
+    </label>
+
+    <label>
+      <input type="checkbox" name="checks" value="condiments">
+      Condiments stocked and fresh
+    </label>
+
+    <label>
+      <input type="checkbox" name="checks" value="uniform">
+      Uniform / brand appearance
+    </label>
+  </fieldset>
+
+  <label for="deadline_hour">Deadline Hour (24h)</label>
+  <select id="deadline_hour" name="deadline_hour">
+    <option value="9">9:00 AM</option>
+    <option value="10">10:00 AM</option>
+    <option value="11" selected>11:00 AM</option>
+    <option value="12">12:00 PM</option>
+  </select>
+  <small>Employees must submit photos before this time.</small>
+
+  <button type="submit">Save &amp; Continue</button>
+</form>
+
+<div class="step-nav">
+  <a href="/onboarding/step/4" class="secondary">&larr; Back</a>
+  <span></span>
+</div>
+{% endblock %}
+
+{% block footer %}{% endblock %}

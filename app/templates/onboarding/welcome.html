@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Get Started — FoodCartOS{% endblock %}
+
+{% block nav %}{% endblock %}
+
+{% block content %}
+{% include "components/step_indicator.html" %}
+
+<hgroup>
+  <h2>Welcome to FoodCartOS</h2>
+  <p>Let's set up your food cart business in a few minutes.</p>
+</hgroup>
+
+<form method="post" action="/onboarding/step/1" hx-post="/onboarding/step/1" hx-target="body" class="onboarding-form">
+  <label for="business_name">Business Name</label>
+  <input type="text" id="business_name" name="business_name" placeholder="e.g. EatFireCraft" required autofocus>
+
+  <label for="owner_name">Your Name</label>
+  <input type="text" id="owner_name" name="owner_name" placeholder="e.g. Poncho" required>
+
+  <label for="email">Email</label>
+  <input type="email" id="email" name="email" placeholder="you@example.com" required>
+
+  <label for="phone">Phone (optional)</label>
+  <input type="tel" id="phone" name="phone" placeholder="(555) 123-4567">
+
+  <label for="password">Password</label>
+  <input type="password" id="password" name="password" placeholder="Create a password" required minlength="6">
+
+  <button type="submit">Create Account &amp; Continue</button>
+</form>
+
+<p style="text-align:center;">
+  Already have an account? <a href="/login">Sign in</a>
+</p>
+{% endblock %}
+
+{% block footer %}{% endblock %}

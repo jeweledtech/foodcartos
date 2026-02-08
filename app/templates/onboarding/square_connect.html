@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Connect Square — FoodCartOS{% endblock %}
+
+{% block nav %}{% endblock %}
+
+{% block content %}
+{% include "components/step_indicator.html" %}
+
+<hgroup>
+  <h2>Connect Your POS</h2>
+  <p>Link your Square account to automatically import sales data.</p>
+</hgroup>
+
+<form method="post" action="/onboarding/step/2" hx-post="/onboarding/step/2" hx-target="body" class="onboarding-form">
+  <label for="square_token">Square Access Token</label>
+  <input type="text" id="square_token" name="square_token" placeholder="Paste your Square access token">
+  <small>Find this in your <a href="https://developer.squareup.com/apps" target="_blank" rel="noopener">Square Developer Dashboard</a>.</small>
+
+  <button type="submit">Connect Square &amp; Continue</button>
+</form>
+
+<div class="step-nav">
+  <a href="/onboarding/step/1" class="secondary">&larr; Back</a>
+  <form method="post" action="/onboarding/step/2" hx-post="/onboarding/step/2" hx-target="body" style="margin:0;">
+    <input type="hidden" name="square_token" value="">
+    <button type="submit" class="outline skip">Skip for now &rarr;</button>
+  </form>
+</div>
+{% endblock %}
+
+{% block footer %}{% endblock %}
