@@ -39,6 +39,9 @@ Poncho was losing $19,760/year by going to the courthouse on Wednesdays ($510) i
 | `docs/personas/README.md` | Deep customer psychology (Poncho's fears, hopes, quotes) |
 | `docs/business-models/README.md` | 5 monetization strategies |
 | `docs/case-studies/eatfirecraft.md` | Complete case study with ROI |
+| `app/templates/dashboard/heatmap.html` | Dark-themed heatmap & analytics dashboard (standalone, not base.html) |
+| `app/templates/dashboard/social.html` | Dark-themed social & data sources dashboard (standalone, not base.html) |
+| `make_gif.py` | PIL-based animated GIF stitcher for demo walkthroughs |
 | `docs/session-logs/` | Detailed session logs for continuity |
 
 ## Development Status
@@ -54,6 +57,9 @@ Poncho was losing $19,760/year by going to the courthouse on Wednesdays ($510) i
 - Frontend: 7-step onboarding wizard, dashboard, settings pages (app/routers/pages.py)
 - Session auth with bcrypt password hashing (app/services/auth.py)
 - PWA manifest and service worker (app/static/)
+- Heatmap & analytics dashboard: live traffic heatmap, map view, location leaderboard, deploy planner
+- Social & data sources dashboard: connections, auto-posts, calendar, review feed, event detection
+- Demo GIFs: foodcartos-heatmap-demo.gif, foodcartos-social-demo.gif (960px, ~250KB for MMS)
 
 **TODO:**
 - [ ] n8n workflow JSON files
@@ -124,6 +130,9 @@ All platforms normalize to a unified order format stored in the `orders` table.
 - **Page routes need admin services**: `use_admin=True` bypasses RLS since session cookies don't carry JWT claims
 - **User auth in JSONB**: `password_hash`, `onboarding_complete`, `onboarding_step` stored in `users.settings` column (not dedicated columns)
 - **Missing tables**: `social_accounts` and `orders` tables require migrations not yet applied — guard queries with try/except
+- **Dark-theme dashboards are standalone**: `heatmap.html` and `social.html` do NOT extend `base.html` — they carry their own CSS to avoid PicoCSS conflicts. Still use Jinja2 `{{ session }}` context.
+- **Playwright can't open file:// URLs**: Must serve HTML via `python3 -m http.server 8765` to screenshot with Playwright MCP
+- **GIF pipeline**: Screenshot multi-frame HTML demos with Playwright (click nav dots), stitch with PIL. 960px width is sweet spot for MMS (<1MB limit)
 
 ## Commands
 
