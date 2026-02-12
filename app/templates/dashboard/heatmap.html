@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heatmap &amp; Analytics — FoodCartOS</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-card: #111827;
+            --bg-card-hover: #1a2236;
+            --border: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-fire: #f97316;
+            --accent-fire-dim: rgba(249, 115, 22, 0.15);
+            --accent-green: #22c55e;
+            --accent-green-dim: rgba(34, 197, 94, 0.12);
+            --accent-red: #ef4444;
+            --accent-red-dim: rgba(239, 68, 68, 0.12);
+            --accent-blue: #3b82f6;
+            --accent-blue-dim: rgba(59, 130, 246, 0.12);
+            --accent-purple: #a855f7;
+            --heat-cold: #3b82f6;
+            --heat-warm: #f59e0b;
+            --heat-hot: #ef4444;
+            --radius: 12px;
+            --radius-sm: 8px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* Top bar */
+        .topbar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 16px 28px; border-bottom: 1px solid var(--border);
+            background: rgba(10, 14, 26, 0.8); backdrop-filter: blur(12px);
+            position: sticky; top: 0; z-index: 100;
+        }
+        .topbar-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text-primary); }
+        .topbar-logo .icon {
+            width: 32px; height: 32px;
+            background: linear-gradient(135deg, var(--accent-fire), #dc2626);
+            border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px;
+        }
+        .topbar-logo span { font-weight: 700; font-size: 16px; letter-spacing: -0.3px; }
+        .topbar-logo .os { color: var(--accent-fire); }
+        .topbar-right { display: flex; align-items: center; gap: 16px; }
+        .topbar-status {
+            display: flex; align-items: center; gap: 6px; font-size: 12px;
+            color: var(--accent-green); background: var(--accent-green-dim);
+            padding: 4px 12px; border-radius: 20px; font-weight: 500;
+        }
+        .topbar-status::before {
+            content: ''; width: 6px; height: 6px; background: var(--accent-green);
+            border-radius: 50%; animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        .topbar-user {
+            width: 32px; height: 32px; border-radius: 50%;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px;
+        }
+        .topbar-back {
+            font-size: 12px; color: var(--text-muted); text-decoration: none;
+            display: flex; align-items: center; gap: 4px;
+        }
+        .topbar-back:hover { color: var(--text-secondary); }
+
+        /* Tab nav */
+        .tab-nav {
+            display: flex; gap: 0; padding: 0 28px;
+            border-bottom: 1px solid var(--border); background: var(--bg-primary);
+        }
+        .tab {
+            padding: 12px 20px; font-size: 13px; font-weight: 500;
+            color: var(--text-muted); border-bottom: 2px solid transparent;
+            cursor: pointer; transition: all 0.2s; text-decoration: none;
+        }
+        .tab:hover { color: var(--text-secondary); }
+        .tab.active { color: var(--accent-fire); border-bottom-color: var(--accent-fire); }
+
+        /* Content */
+        .content { padding: 24px 28px; }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 20px; margin-bottom: 16px;
+        }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .card-title { font-size: 14px; font-weight: 600; }
+        .card-subtitle { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+        .badge { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 600; font-family: 'Space Mono', monospace; }
+        .badge-live { background: var(--accent-green-dim); color: var(--accent-green); }
+        .badge-fire { background: var(--accent-fire-dim); color: var(--accent-fire); }
+
+        /* Metrics */
+        .metrics-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+        .metric-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+        .metric-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500; }
+        .metric-value { font-size: 28px; font-weight: 700; font-family: 'Space Mono', monospace; margin-top: 6px; line-height: 1; }
+        .metric-change { font-size: 11px; margin-top: 6px; font-weight: 500; }
+        .metric-change.up { color: var(--accent-green); }
+        .metric-change.down { color: var(--accent-red); }
+
+        /* Heatmap */
+        .heatmap-container { position: relative; background: #0d1320; border-radius: var(--radius); overflow: hidden; height: 320px; border: 1px solid var(--border); }
+        .heatmap-grid { display: grid; grid-template-columns: repeat(24, 1fr); grid-template-rows: repeat(7, 1fr); gap: 2px; padding: 40px 50px 30px 80px; height: 100%; }
+        .heat-cell { border-radius: 3px; transition: all 0.3s; position: relative; }
+        .heat-cell:hover { transform: scale(1.4); z-index: 10; }
+        .heat-0 { background: #1a1f2e; } .heat-1 { background: #1e3a5f; } .heat-2 { background: #2563eb; }
+        .heat-3 { background: #3b82f6; } .heat-4 { background: #60a5fa; } .heat-5 { background: #fbbf24; }
+        .heat-6 { background: #f59e0b; } .heat-7 { background: #f97316; } .heat-8 { background: #ef4444; }
+        .heat-9 { background: #dc2626; } .heat-10 { background: #b91c1c; box-shadow: 0 0 8px rgba(239,68,68,0.5); }
+        .heatmap-y-labels { position: absolute; left: 12px; top: 40px; bottom: 30px; display: flex; flex-direction: column; justify-content: space-around; font-size: 10px; color: var(--text-muted); font-family: 'Space Mono', monospace; }
+        .heatmap-x-labels { position: absolute; bottom: 8px; left: 80px; right: 50px; display: flex; justify-content: space-between; font-size: 9px; color: var(--text-muted); font-family: 'Space Mono', monospace; }
+        .heatmap-title-overlay { position: absolute; top: 12px; left: 16px; font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+        .heatmap-legend { position: absolute; top: 12px; right: 16px; display: flex; align-items: center; gap: 4px; font-size: 9px; color: var(--text-muted); }
+        .legend-bar { display: flex; gap: 1px; }
+        .legend-bar span { width: 12px; height: 8px; border-radius: 1px; }
+
+        /* Map */
+        .map-container { position: relative; background: #0d1320; border-radius: var(--radius); height: 360px; border: 1px solid var(--border); overflow: hidden; }
+        .map-grid-lines { position: absolute; inset: 0; background-image: linear-gradient(rgba(59,130,246,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.06) 1px, transparent 1px); background-size: 40px 40px; }
+        .map-road { position: absolute; background: rgba(148, 163, 184, 0.08); }
+        .map-road.h { height: 3px; left: 0; right: 0; }
+        .map-road.v { width: 3px; top: 0; bottom: 0; }
+        .map-pin { position: absolute; display: flex; flex-direction: column; align-items: center; transform: translate(-50%, -100%); z-index: 10; }
+        .map-pin-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
+        .map-pin-label { margin-top: 4px; background: rgba(17, 24, 39, 0.9); padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; white-space: nowrap; border: 1px solid var(--border); }
+        .map-heat-blob { position: absolute; border-radius: 50%; filter: blur(30px); opacity: 0.4; transform: translate(-50%, -50%); }
+        .map-label-area { position: absolute; font-size: 9px; color: var(--text-muted); font-family: 'Space Mono', monospace; text-transform: uppercase; letter-spacing: 1px; opacity: 0.5; }
+
+        /* Location rows */
+        .location-row { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); gap: 14px; }
+        .location-row:last-child { border-bottom: none; }
+        .location-rank { font-family: 'Space Mono', monospace; font-size: 12px; color: var(--text-muted); width: 24px; text-align: center; }
+        .location-color { width: 4px; height: 36px; border-radius: 2px; }
+        .location-info { flex: 1; }
+        .location-name { font-size: 13px; font-weight: 600; }
+        .location-detail { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+        .location-stat { text-align: right; }
+        .location-stat-value { font-family: 'Space Mono', monospace; font-size: 14px; font-weight: 700; }
+        .location-stat-label { font-size: 10px; color: var(--text-muted); }
+
+        /* Time bar */
+        .time-bar { display: flex; align-items: flex-end; gap: 2px; height: 80px; padding: 0 4px; }
+        .time-bar-col { flex: 1; border-radius: 3px 3px 0 0; transition: all 0.3s; min-height: 4px; }
+        .time-bar-col.highlight { box-shadow: 0 0 12px rgba(249, 115, 22, 0.4); }
+        .time-labels { display: flex; justify-content: space-between; margin-top: 8px; font-size: 9px; color: var(--text-muted); font-family: 'Space Mono', monospace; }
+        .time-highlight-label { background: var(--accent-fire-dim); color: var(--accent-fire); padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+
+        /* Insight card */
+        .insight-card { background: linear-gradient(135deg, rgba(249,115,22,0.08), rgba(239,68,68,0.05)); border: 1px solid rgba(249, 115, 22, 0.25); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+        .insight-icon { width: 36px; height: 36px; background: var(--accent-fire-dim); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 12px; }
+        .insight-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+        .insight-body { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+        .insight-stat { display: inline-block; background: var(--bg-card); border: 1px solid var(--border); padding: 2px 8px; border-radius: 4px; font-family: 'Space Mono', monospace; font-size: 12px; font-weight: 700; color: var(--accent-fire); }
+
+        /* Deploy card */
+        .deploy-card { background: linear-gradient(135deg, rgba(34,197,94,0.08), rgba(34,197,94,0.03)); border: 1px solid rgba(34, 197, 94, 0.25); border-radius: var(--radius); padding: 20px; }
+        .deploy-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+        .deploy-icon { width: 36px; height: 36px; background: var(--accent-green-dim); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        .deploy-title { font-size: 15px; font-weight: 700; }
+        .deploy-subtitle { font-size: 11px; color: var(--text-muted); }
+        .deploy-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 8px; }
+        .deploy-cart-name { font-size: 13px; font-weight: 600; }
+        .deploy-location { font-size: 11px; color: var(--text-muted); }
+        .deploy-expected { font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; color: var(--accent-green); }
+        .deploy-btn { width: 100%; padding: 12px; background: linear-gradient(135deg, #22c55e, #16a34a); border: none; border-radius: var(--radius-sm); color: white; font-weight: 700; font-size: 14px; cursor: pointer; margin-top: 12px; font-family: 'DM Sans', sans-serif; }
+
+        /* Comparison bars */
+        .compare-bar-container { margin: 8px 0; }
+        .compare-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
+        .compare-bar { height: 8px; background: var(--bg-primary); border-radius: 4px; overflow: hidden; }
+        .compare-bar-fill { height: 100%; border-radius: 4px; transition: width 0.8s ease-out; }
+
+        .split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .split-wide { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+
+        @media (max-width: 768px) {
+            .metrics-row { grid-template-columns: repeat(2, 1fr); }
+            .split, .split-wide { grid-template-columns: 1fr; }
+            .content { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="topbar">
+    <a href="/dashboard" class="topbar-logo">
+        <div class="icon">&#x1F525;</div>
+        <span>FoodCart<span class="os">OS</span></span>
+    </a>
+    <div class="topbar-right">
+        <a href="/dashboard" class="topbar-back">&larr; Dashboard</a>
+        <div class="topbar-status">Live Tracking</div>
+        <div class="topbar-user">{{ session.name[0] | upper if session.name else 'U' }}</div>
+    </div>
+</div>
+
+<!-- Tab navigation -->
+<div class="tab-nav">
+    <div class="tab active" data-tab="heatmap">Heatmap</div>
+    <div class="tab" data-tab="locations">Locations</div>
+    <div class="tab" data-tab="deploy">Deploy</div>
+    <div class="tab" data-tab="analytics">Analytics</div>
+    <a class="tab" href="/dashboard/social">Social</a>
+</div>
+
+<!-- TAB 1: Heatmap Overview -->
+<div class="content">
+<div class="tab-panel active" id="panel-heatmap">
+    <div class="metrics-row">
+        <div class="metric-card">
+            <div class="metric-label">Devices Now</div>
+            <div class="metric-value" style="color: var(--accent-fire)">47</div>
+            <div class="metric-change up">&uarr; 23% vs avg</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Peak Today</div>
+            <div class="metric-value" style="color: var(--accent-blue)">112</div>
+            <div class="metric-change" style="color: var(--text-muted)">@ 12:15 PM</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Revenue</div>
+            <div class="metric-value" style="color: var(--accent-green)">$890</div>
+            <div class="metric-change up">&uarr; $140 vs Tue avg</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Carts Active</div>
+            <div class="metric-value" style="color: var(--accent-purple)">3</div>
+            <div class="metric-change" style="color: var(--accent-green)">All online</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <div class="card-title">Live Foot Traffic Heatmap</div>
+                <div class="card-subtitle">WiFi + Bluetooth device detection &bull; 30s intervals</div>
+            </div>
+            <span class="badge badge-live">&#9679; LIVE</span>
+        </div>
+        <div class="heatmap-container">
+            <div class="heatmap-title-overlay">Devices Detected / Hour</div>
+            <div class="heatmap-legend">
+                <span>Low</span>
+                <div class="legend-bar">
+                    <span style="background:#1a1f2e"></span><span style="background:#1e3a5f"></span>
+                    <span style="background:#2563eb"></span><span style="background:#60a5fa"></span>
+                    <span style="background:#fbbf24"></span><span style="background:#f97316"></span>
+                    <span style="background:#ef4444"></span><span style="background:#b91c1c"></span>
+                </div>
+                <span>High</span>
+            </div>
+            <div class="heatmap-y-labels">
+                <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+            </div>
+            <div class="heatmap-grid" id="heatGrid"></div>
+            <div class="heatmap-x-labels">
+                <span>6a</span><span>8a</span><span>10a</span><span>12p</span><span>2p</span><span>4p</span><span>6p</span><span>8p</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TAB 2: Map View -->
+<div class="tab-panel" id="panel-locations">
+    <div class="card" style="padding: 0; overflow: hidden;">
+        <div style="padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <div class="card-title">Vacaville Area &mdash; Live Traffic</div>
+                <div class="card-subtitle">Cart positions + detected device density</div>
+            </div>
+            <span class="badge badge-live">&#9679; LIVE</span>
+        </div>
+        <div class="map-container">
+            <div class="map-grid-lines"></div>
+            <div class="map-road h" style="top: 35%"></div>
+            <div class="map-road h" style="top: 55%"></div>
+            <div class="map-road h" style="top: 75%"></div>
+            <div class="map-road v" style="left: 25%"></div>
+            <div class="map-road v" style="left: 50%"></div>
+            <div class="map-road v" style="left: 75%"></div>
+            <div class="map-label-area" style="top: 10%; left: 12%">Downtown</div>
+            <div class="map-label-area" style="top: 10%; right: 12%">DMV Area</div>
+            <div class="map-label-area" style="bottom: 15%; left: 12%">Courthouse</div>
+            <div class="map-label-area" style="bottom: 15%; right: 12%">Farmers Mkt</div>
+            <div class="map-heat-blob" style="top: 65%; left: 30%; width: 180px; height: 180px; background: radial-gradient(circle, rgba(239,68,68,0.6), transparent);"></div>
+            <div class="map-heat-blob" style="top: 30%; right: 20%; width: 140px; height: 140px; background: radial-gradient(circle, rgba(249,115,22,0.5), transparent);"></div>
+            <div class="map-heat-blob" style="bottom: 25%; right: 25%; width: 120px; height: 120px; background: radial-gradient(circle, rgba(59,130,246,0.4), transparent);"></div>
+            <div class="map-pin" style="top: 62%; left: 30%">
+                <div class="map-pin-dot" style="background: var(--accent-green);"></div>
+                <div class="map-pin-label">Cart 1 &mdash; Courthouse <span style="color: var(--accent-green); font-family: 'Space Mono';">$450</span></div>
+            </div>
+            <div class="map-pin" style="top: 28%; left: 72%">
+                <div class="map-pin-dot" style="background: var(--accent-fire);"></div>
+                <div class="map-pin-label">Cart 2 &mdash; DMV <span style="color: var(--accent-fire); font-family: 'Space Mono';">$320</span></div>
+            </div>
+            <div class="map-pin" style="top: 78%; left: 70%">
+                <div class="map-pin-dot" style="background: var(--accent-blue);"></div>
+                <div class="map-pin-label">Cart 3 &mdash; Farmers Mkt <span style="color: var(--accent-blue); font-family: 'Space Mono';">$180</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" style="margin-top: 16px;">
+        <div class="card-header">
+            <div>
+                <div class="card-title">&#x1F4CD; Solano County Courthouse</div>
+                <div class="card-subtitle">Top performing location &bull; 14 days of data</div>
+            </div>
+            <span class="badge badge-fire">&#9733; #1 Spot</span>
+        </div>
+        <div class="time-highlight-label">&#x1F525; Peak Rush: 11:30 AM &ndash; 1:15 PM</div>
+        <div class="card-subtitle" style="margin-bottom: 8px;">Devices detected by hour &mdash; today</div>
+        <div class="time-bar" id="timeBar"></div>
+        <div class="time-labels">
+            <span>6am</span><span>8am</span><span>10am</span><span>12pm</span><span>2pm</span><span>4pm</span><span>6pm</span><span>8pm</span>
+        </div>
+    </div>
+
+    <div class="split">
+        <div class="card">
+            <div class="card-title" style="margin-bottom: 12px;">Daily Revenue</div>
+            <div class="compare-bar-container">
+                <div class="compare-label"><span>Monday</span><span style="color:var(--text-muted)">$420</span></div>
+                <div class="compare-bar"><div class="compare-bar-fill" style="width:47%; background: var(--accent-blue)"></div></div>
+            </div>
+            <div class="compare-bar-container">
+                <div class="compare-label"><span>Tuesday</span><span style="color:var(--text-muted)">$680</span></div>
+                <div class="compare-bar"><div class="compare-bar-fill" style="width:76%; background: var(--accent-blue)"></div></div>
+            </div>
+            <div class="compare-bar-container">
+                <div class="compare-label"><span>Wednesday</span><span style="color:var(--text-muted)">$510</span></div>
+                <div class="compare-bar"><div class="compare-bar-fill" style="width:57%; background: var(--accent-blue)"></div></div>
+            </div>
+            <div class="compare-bar-container">
+                <div class="compare-label"><span style="font-weight:700; color: var(--accent-fire)">Thursday</span><span style="color:var(--accent-fire); font-weight: 700;">$890</span></div>
+                <div class="compare-bar"><div class="compare-bar-fill" style="width:100%; background: linear-gradient(90deg, var(--accent-fire), var(--accent-red))"></div></div>
+            </div>
+            <div class="compare-bar-container">
+                <div class="compare-label"><span>Friday</span><span style="color:var(--text-muted)">$750</span></div>
+                <div class="compare-bar"><div class="compare-bar-fill" style="width:84%; background: var(--accent-blue)"></div></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-title" style="margin-bottom: 12px;">Why Thursday?</div>
+            <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+                <div style="margin-bottom: 10px;">
+                    <strong style="color: var(--accent-fire);">Jury Duty Days</strong><br>
+                    Courthouse sees <span class="insight-stat">2.3x</span> foot traffic on arraignment days.
+                </div>
+                <div style="margin-bottom: 10px;">
+                    <strong style="color: var(--accent-green);">Lunch Rush Extended</strong><br>
+                    Peak lasts <span class="insight-stat">47 min</span> longer than other days.
+                </div>
+                <div>
+                    <strong style="color: var(--accent-blue);">Avg Ticket</strong><br>
+                    <span class="insight-stat">$14.20</span> vs $11.80 other days.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TAB 3: Deploy -->
+<div class="tab-panel" id="panel-deploy">
+    <div class="insight-card" style="border-color: rgba(34,197,94,0.3); background: linear-gradient(135deg, rgba(34,197,94,0.08), rgba(34,197,94,0.03));">
+        <div class="insight-icon" style="background: var(--accent-green-dim);">&#x1F3AA;</div>
+        <div class="insight-title">Event Detected: Jazz Festival Downtown</div>
+        <div class="insight-body">
+            This Saturday, 10 AM &ndash; 8 PM. Based on similar events, expect <span class="insight-stat">3.2x</span> normal foot traffic.
+            Projected revenue per cart: <span class="insight-stat">$1,200&ndash;$1,800</span>.
+            Recommended: Deploy all 3 carts to downtown zone.
+        </div>
+    </div>
+
+    <div class="deploy-card">
+        <div class="deploy-header">
+            <div class="deploy-icon">&#x1F680;</div>
+            <div>
+                <div class="deploy-title">Saturday Deployment Plan</div>
+                <div class="deploy-subtitle">Optimized for Jazz Festival + weather (82&deg;F, sunny)</div>
+            </div>
+        </div>
+        <div class="deploy-row">
+            <div>
+                <div class="deploy-cart-name">&#x1F534; Cart 1 &mdash; Poncho</div>
+                <div class="deploy-location">Main Stage Area &bull; Arrive 9:30 AM</div>
+            </div>
+            <div class="deploy-expected">~$1,600</div>
+        </div>
+        <div class="deploy-row">
+            <div>
+                <div class="deploy-cart-name">&#x1F7E1; Cart 2 &mdash; Juan</div>
+                <div class="deploy-location">Food Court Zone &bull; Arrive 10:00 AM</div>
+            </div>
+            <div class="deploy-expected">~$1,400</div>
+        </div>
+        <div class="deploy-row">
+            <div>
+                <div class="deploy-cart-name">&#x1F535; Cart 3 &mdash; Miguel</div>
+                <div class="deploy-location">Parking Entrance &bull; Arrive 10:00 AM</div>
+            </div>
+            <div class="deploy-expected">~$1,100</div>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border);">
+            <div>
+                <div style="font-size: 11px; color: var(--text-muted);">Total Expected</div>
+                <div style="font-family: 'Space Mono'; font-size: 22px; font-weight: 700; color: var(--accent-green);">$4,100</div>
+            </div>
+            <div>
+                <div style="font-size: 11px; color: var(--text-muted);">vs Normal Saturday</div>
+                <div style="font-family: 'Space Mono'; font-size: 22px; font-weight: 700; color: var(--accent-fire);">+218%</div>
+            </div>
+        </div>
+        <button class="deploy-btn">&#10003; Confirm &amp; Notify Team</button>
+    </div>
+</div>
+
+<!-- TAB 4: Analytics -->
+<div class="tab-panel" id="panel-analytics">
+    <div class="insight-card">
+        <div class="insight-icon">&#x1F4A1;</div>
+        <div class="insight-title">Courthouse outperforms DMV on Thursdays by 42%</div>
+        <div class="insight-body">
+            Based on 14 days of foot traffic data, Thursdays at the Courthouse see <span class="insight-stat">$890 avg</span> revenue vs <span class="insight-stat">$626 avg</span> at DMV.
+            Jury duty schedules correlate with a <span class="insight-stat">2.3x</span> traffic spike between 11 AM &ndash; 1 PM.
+            Recommend deploying Cart 1 to Courthouse every Thursday.
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <div class="card-title">Location Leaderboard &mdash; Last 14 Days</div>
+                <div class="card-subtitle">Ranked by average daily revenue</div>
+            </div>
+        </div>
+        <div class="location-row">
+            <div class="location-rank">01</div>
+            <div class="location-color" style="background: linear-gradient(180deg, var(--accent-fire), var(--accent-red))"></div>
+            <div class="location-info">
+                <div class="location-name">Solano County Courthouse</div>
+                <div class="location-detail">Best: Thursday &bull; Peak: 11:30a&ndash;1:15p</div>
+            </div>
+            <div class="location-stat">
+                <div class="location-stat-value" style="color: var(--accent-fire)">$750</div>
+                <div class="location-stat-label">avg/day</div>
+            </div>
+        </div>
+        <div class="location-row">
+            <div class="location-rank">02</div>
+            <div class="location-color" style="background: linear-gradient(180deg, var(--accent-blue), #1d4ed8)"></div>
+            <div class="location-info">
+                <div class="location-name">Downtown Farmers Market</div>
+                <div class="location-detail">Best: Saturday &bull; Peak: 9:00a&ndash;12:30p</div>
+            </div>
+            <div class="location-stat">
+                <div class="location-stat-value" style="color: var(--accent-blue)">$680</div>
+                <div class="location-stat-label">avg/day</div>
+            </div>
+        </div>
+        <div class="location-row">
+            <div class="location-rank">03</div>
+            <div class="location-color" style="background: linear-gradient(180deg, var(--accent-green), #15803d)"></div>
+            <div class="location-info">
+                <div class="location-name">Vacaville DMV</div>
+                <div class="location-detail">Best: Monday &bull; Peak: 10:00a&ndash;12:00p</div>
+            </div>
+            <div class="location-stat">
+                <div class="location-stat-value" style="color: var(--accent-green)">$626</div>
+                <div class="location-stat-label">avg/day</div>
+            </div>
+        </div>
+        <div class="location-row">
+            <div class="location-rank">04</div>
+            <div class="location-color" style="background: linear-gradient(180deg, var(--accent-purple), #7c3aed)"></div>
+            <div class="location-info">
+                <div class="location-name">Nut Tree / Leisure Town</div>
+                <div class="location-detail">Best: Friday &bull; Peak: 5:00p&ndash;7:30p</div>
+            </div>
+            <div class="location-stat">
+                <div class="location-stat-value" style="color: var(--accent-purple)">$540</div>
+                <div class="location-stat-label">avg/day</div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<script>
+    // Tab switching
+    document.querySelectorAll('.tab[data-tab]').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+        });
+    });
+
+    // Generate heatmap
+    (function() {
+        const grid = document.getElementById('heatGrid');
+        const patterns = [
+            [0,0,1,2,3,5,7,8,9,8,6,5,4,3,2,1,1,0,0,0,0,0,0,0],
+            [0,0,1,3,4,6,8,9,10,9,7,6,5,3,2,1,1,0,0,0,0,0,0,0],
+            [0,0,1,2,3,4,6,7,7,6,5,4,3,2,1,1,0,0,0,0,0,0,0,0],
+            [0,0,1,3,5,7,9,10,10,10,8,7,6,4,3,2,1,0,0,0,0,0,0,0],
+            [0,0,1,2,4,6,8,9,9,8,7,6,5,4,3,2,1,0,0,0,0,0,0,0],
+            [0,1,3,5,7,9,10,9,8,7,6,6,5,5,4,3,2,1,0,0,0,0,0,0],
+            [0,0,0,1,2,3,4,5,5,4,3,3,2,1,1,0,0,0,0,0,0,0,0,0],
+        ];
+        for (let day = 0; day < 7; day++) {
+            for (let hour = 0; hour < 24; hour++) {
+                const cell = document.createElement('div');
+                cell.className = 'heat-cell heat-' + patterns[day][hour];
+                cell.title = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][day] + ' ' + hour + ':00 — ' + (patterns[day][hour] * 12) + ' devices';
+                grid.appendChild(cell);
+            }
+        }
+    })();
+
+    // Generate time bar
+    (function() {
+        const bar = document.getElementById('timeBar');
+        const heights = [5,8,15,25,40,55,75,90,100,95,80,60,45,30,20,12,8,5];
+        heights.forEach(h => {
+            const col = document.createElement('div');
+            col.className = 'time-bar-col' + (h > 80 ? ' highlight' : '');
+            col.style.height = h + '%';
+            col.style.background = h > 80 ? 'var(--accent-red)' : h > 60 ? 'var(--accent-fire)' : h > 40 ? 'var(--accent-blue)' : h > 20 ? '#60a5fa' : '#1e3a5f';
+            bar.appendChild(col);
+        });
+    })();
+</script>
+</body>
+</html>

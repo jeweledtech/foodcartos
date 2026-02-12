@@ -541,6 +541,22 @@ async def dashboard(request: Request):
     )
 
 
+@router.get("/dashboard/heatmap", response_class=HTMLResponse)
+async def dashboard_heatmap(request: Request):
+    redir = _require_auth(request)
+    if redir:
+        return redir
+    return templates.TemplateResponse("dashboard/heatmap.html", _ctx(request))
+
+
+@router.get("/dashboard/social", response_class=HTMLResponse)
+async def dashboard_social(request: Request):
+    redir = _require_auth(request)
+    if redir:
+        return redir
+    return templates.TemplateResponse("dashboard/social.html", _ctx(request))
+
+
 @router.get("/dashboard/locations", response_class=HTMLResponse)
 async def dashboard_locations(request: Request):
     redir = _require_auth(request)

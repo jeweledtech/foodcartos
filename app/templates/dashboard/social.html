@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social &amp; Data Sources — FoodCartOS</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root{--bg-primary:#0a0e1a;--bg-card:#111827;--border:#1e293b;--text-primary:#f1f5f9;--text-secondary:#94a3b8;--text-muted:#64748b;--accent-fire:#f97316;--accent-fire-dim:rgba(249,115,22,.15);--accent-green:#22c55e;--accent-green-dim:rgba(34,197,94,.12);--accent-red:#ef4444;--accent-red-dim:rgba(239,68,68,.12);--accent-blue:#3b82f6;--accent-blue-dim:rgba(59,130,246,.12);--accent-purple:#a855f7;--accent-purple-dim:rgba(168,85,247,.12);--fb-blue:#1877f2;--ig-pink:#e4405f;--google-yellow:#fbbc05;--yelp-red:#d32323;--radius:12px;--radius-sm:8px}
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'DM Sans',sans-serif;background:var(--bg-primary);color:var(--text-primary);min-height:100vh}
+
+        /* Top bar */
+        .topbar{display:flex;justify-content:space-between;align-items:center;padding:16px 28px;border-bottom:1px solid var(--border);background:rgba(10,14,26,.8);backdrop-filter:blur(12px);position:sticky;top:0;z-index:100}
+        .topbar-logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text-primary)}
+        .topbar-logo .icon{width:32px;height:32px;background:linear-gradient(135deg,var(--accent-fire),#dc2626);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+        .topbar-logo span{font-weight:700;font-size:16px;letter-spacing:-.3px}.topbar-logo .os{color:var(--accent-fire)}
+        .topbar-right{display:flex;align-items:center;gap:16px}
+        .topbar-status{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--accent-green);background:var(--accent-green-dim);padding:4px 12px;border-radius:20px;font-weight:500}
+        .topbar-status::before{content:'';width:6px;height:6px;background:var(--accent-green);border-radius:50%;animation:pulse 2s infinite}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+        .topbar-user{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#f97316,#ea580c);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+        .topbar-back{font-size:12px;color:var(--text-muted);text-decoration:none;display:flex;align-items:center;gap:4px}
+        .topbar-back:hover{color:var(--text-secondary)}
+
+        /* Tab nav */
+        .tab-nav{display:flex;gap:0;padding:0 28px;border-bottom:1px solid var(--border);background:var(--bg-primary)}
+        .tab{padding:12px 20px;font-size:13px;font-weight:500;color:var(--text-muted);border-bottom:2px solid transparent;cursor:pointer;transition:all .2s;text-decoration:none}
+        .tab:hover{color:var(--text-secondary)}
+        .tab.active{color:var(--accent-fire);border-bottom-color:var(--accent-fire)}
+
+        /* Content */
+        .content{padding:24px 28px}
+        .tab-panel{display:none}.tab-panel.active{display:block}
+
+        /* Cards */
+        .card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+        .card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+        .card-title{font-size:14px;font-weight:600}.card-subtitle{font-size:11px;color:var(--text-muted);margin-top:2px}
+
+        /* Connections grid */
+        .connections-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+        .connection-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;position:relative;overflow:hidden}
+        .connection-card.connected{border-color:rgba(34,197,94,.3)}
+        .connection-card.connected::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent-green)}
+        .connection-card.pending{border-color:rgba(249,115,22,.3);border-style:dashed}
+        .connection-header{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+        .connection-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700}
+        .connection-name{font-size:13px;font-weight:600}.connection-account{font-size:11px;color:var(--text-muted)}
+        .connection-status{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;margin-top:8px}
+        .connection-status.on{color:var(--accent-green)}.connection-status.off{color:var(--text-muted)}
+        .connection-status-dot{width:6px;height:6px;border-radius:50%}
+        .connection-metrics{display:flex;gap:12px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+        .connection-metric{font-size:10px;color:var(--text-muted)}
+        .connection-metric strong{display:block;font-family:'Space Mono',monospace;font-size:13px;color:var(--text-primary);margin-bottom:2px}
+        .connect-btn{width:100%;padding:8px;background:transparent;border:1px solid var(--accent-fire);color:var(--accent-fire);border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer;margin-top:10px;font-family:'DM Sans',sans-serif}
+
+        /* Social posts */
+        .social-post{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:16px;position:relative}
+        .social-post-header{display:flex;align-items:center;gap:10px;padding:14px 16px}
+        .social-post-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent-fire),#dc2626);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700}
+        .social-post-name{font-size:13px;font-weight:600}.social-post-time{font-size:11px;color:var(--text-muted)}
+        .social-post-body{padding:0 16px 14px;font-size:13px;line-height:1.6;color:var(--text-secondary)}
+        .social-post-tag{display:inline-block;background:var(--accent-fire-dim);color:var(--accent-fire);padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600}
+        .social-post-badge{position:absolute;top:14px;right:16px;font-size:10px;background:var(--accent-green-dim);color:var(--accent-green);padding:3px 8px;border-radius:4px;font-weight:600}
+        .social-post-map{height:180px;background:#0d1320;position:relative;overflow:hidden;margin:0 16px 14px;border-radius:var(--radius-sm);border:1px solid var(--border)}
+        .social-post-map-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(59,130,246,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,.06) 1px,transparent 1px);background-size:30px 30px}
+        .social-post-map-pin{position:absolute;transform:translate(-50%,-50%);font-size:20px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
+        .social-post-map-label{position:absolute;font-size:10px;font-weight:600;color:var(--text-primary);background:rgba(17,24,39,.85);padding:3px 8px;border-radius:4px;white-space:nowrap;border:1px solid var(--border)}
+        .social-post-actions{display:flex;gap:24px;padding:10px 16px;border-top:1px solid var(--border);font-size:12px;color:var(--text-muted)}
+
+        /* Calendar */
+        .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+        .cal-hdr{font-size:10px;color:var(--text-muted);text-align:center;padding:6px 0;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+        .cal-d{aspect-ratio:1;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:var(--text-muted);background:var(--bg-primary)}
+        .cal-d.hp{background:var(--accent-fire-dim);color:var(--accent-fire);border:1px solid rgba(249,115,22,.2)}
+        .cal-d.today{border:1px solid var(--accent-fire);box-shadow:0 0 8px rgba(249,115,22,.2)}
+        .cal-dot{width:4px;height:4px;border-radius:50%;margin-top:3px}
+
+        /* Feed */
+        .feed-item{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--border)}
+        .feed-item:last-child{border-bottom:none}
+        .feed-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+        .feed-source{font-size:11px;font-weight:600}.feed-text{font-size:12px;color:var(--text-secondary);margin-top:2px;line-height:1.4}
+        .feed-time{font-size:10px;color:var(--text-muted);margin-top:4px}
+        .feed-star{color:#fbbf24;font-size:12px}
+
+        /* Events */
+        .event-tag{font-size:10px;padding:4px 10px;border-radius:20px;font-weight:600;background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);display:inline-block;margin:2px}
+
+        /* Metrics */
+        .metrics-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+        .metric-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+        .metric-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;font-weight:500}
+        .metric-value{font-size:20px;font-weight:700;font-family:'Space Mono',monospace;margin-top:4px;line-height:1}
+        .metric-change{font-size:11px;margin-top:4px;font-weight:500}.metric-change.up{color:var(--accent-green)}
+
+        .split{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+
+        /* OAuth modal */
+        .oauth-overlay{display:none;background:rgba(10,14,26,.85);position:fixed;inset:0;z-index:200;align-items:center;justify-content:center}
+        .oauth-overlay.active{display:flex}
+        .oauth-modal{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;width:420px;overflow:hidden;box-shadow:0 25px 60px rgba(0,0,0,.5)}
+        .oauth-brand{padding:30px;text-align:center;border-bottom:1px solid var(--border)}
+        .oauth-brand-icon{width:56px;height:56px;border-radius:14px;display:inline-flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:12px}
+        .oauth-brand-name{font-size:18px;font-weight:700}.oauth-brand-sub{font-size:12px;color:var(--text-muted);margin-top:4px}
+        .oauth-body{padding:24px 30px}
+        .oauth-perm{display:flex;align-items:center;gap:10px;padding:10px 0;font-size:13px;color:var(--text-secondary)}
+        .oauth-perm-icon{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;background:var(--accent-green-dim);flex-shrink:0}
+        .oauth-footer{padding:20px 30px;border-top:1px solid var(--border);display:flex;gap:10px}
+        .oauth-btn{flex:1;padding:12px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;border:none}
+        .oauth-btn.primary{background:var(--fb-blue);color:white}.oauth-btn.secondary{background:transparent;color:var(--text-muted);border:1px solid var(--border)}
+
+        @media (max-width: 768px) {
+            .connections-grid, .split { grid-template-columns: 1fr; }
+            .metrics-row { grid-template-columns: repeat(2, 1fr); }
+            .content { padding: 16px; }
+            .oauth-modal { width: 90%; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="topbar">
+    <a href="/dashboard" class="topbar-logo">
+        <div class="icon">&#x1F525;</div>
+        <span>FoodCart<span class="os">OS</span></span>
+    </a>
+    <div class="topbar-right">
+        <a href="/dashboard" class="topbar-back">&larr; Dashboard</a>
+        <div class="topbar-status">Live Tracking</div>
+        <div class="topbar-user">{{ session.name[0] | upper if session.name else 'U' }}</div>
+    </div>
+</div>
+
+<!-- Tab navigation -->
+<div class="tab-nav">
+    <a class="tab" href="/dashboard/heatmap">Heatmap</a>
+    <a class="tab" href="/dashboard/heatmap">Locations</a>
+    <a class="tab" href="/dashboard/heatmap">Deploy</a>
+    <a class="tab" href="/dashboard/heatmap">Analytics</a>
+    <div class="tab active" data-tab="connections">Social</div>
+</div>
+
+<!-- Sub-tabs for Social -->
+<div class="tab-nav" style="padding-left: 28px; background: rgba(17,24,39,0.5);">
+    <div class="tab active" data-tab="connections" data-subtab>Connections</div>
+    <div class="tab" data-tab="posts" data-subtab>Posts</div>
+    <div class="tab" data-tab="calendar" data-subtab>Calendar</div>
+    <div class="tab" data-tab="feed" data-subtab>Feed</div>
+    <div class="tab" data-tab="events" data-subtab>Events</div>
+</div>
+
+<div class="content">
+
+<!-- SUB-TAB 1: Connections -->
+<div class="tab-panel active" id="panel-connections">
+    <div style="margin-bottom:20px"><h2 style="font-size:18px;font-weight:700">Data Connections</h2><p style="font-size:12px;color:var(--text-muted);margin-top:4px">Connect your accounts to auto-post locations, track reviews, and detect events.</p></div>
+    <div class="connections-grid">
+        <div class="connection-card connected">
+            <div class="connection-header"><div class="connection-icon" style="background:rgba(24,119,242,.15);color:var(--fb-blue)">f</div><div><div class="connection-name">Facebook</div><div class="connection-account">Fire Craft BBQ Hot Dogs</div></div></div>
+            <div class="connection-status on"><div class="connection-status-dot" style="background:var(--accent-green)"></div>Connected</div>
+            <div class="connection-metrics"><div class="connection-metric"><strong>247</strong>followers</div><div class="connection-metric"><strong>18</strong>posts/mo</div><div class="connection-metric"><strong>4.2%</strong>engage</div></div>
+        </div>
+        <div class="connection-card connected">
+            <div class="connection-header"><div class="connection-icon" style="background:rgba(228,64,95,.15);color:var(--ig-pink)">&#x1F4F8;</div><div><div class="connection-name">Instagram</div><div class="connection-account">@eatfirecraft</div></div></div>
+            <div class="connection-status on"><div class="connection-status-dot" style="background:var(--accent-green)"></div>Connected</div>
+            <div class="connection-metrics"><div class="connection-metric"><strong>512</strong>followers</div><div class="connection-metric"><strong>22</strong>posts/mo</div><div class="connection-metric"><strong>6.1%</strong>engage</div></div>
+        </div>
+        <div class="connection-card connected">
+            <div class="connection-header"><div class="connection-icon" style="background:rgba(251,188,5,.15);color:var(--google-yellow)">G</div><div><div class="connection-name">Google Business</div><div class="connection-account">Fire Craft &mdash; Vacaville</div></div></div>
+            <div class="connection-status on"><div class="connection-status-dot" style="background:var(--accent-green)"></div>Connected</div>
+            <div class="connection-metrics"><div class="connection-metric"><strong>4.8</strong>rating</div><div class="connection-metric"><strong>67</strong>reviews</div><div class="connection-metric"><strong>1.2K</strong>searches</div></div>
+        </div>
+        <div class="connection-card connected">
+            <div class="connection-header"><div class="connection-icon" style="background:rgba(211,35,35,.15);color:var(--yelp-red)">&#9733;</div><div><div class="connection-name">Yelp</div><div class="connection-account">Fire Craft &mdash; Vacaville</div></div></div>
+            <div class="connection-status on"><div class="connection-status-dot" style="background:var(--accent-green)"></div>Connected</div>
+            <div class="connection-metrics"><div class="connection-metric"><strong>4.5</strong>rating</div><div class="connection-metric"><strong>43</strong>reviews</div><div class="connection-metric"><strong>89%</strong>positive</div></div>
+        </div>
+        <div class="connection-card pending">
+            <div class="connection-header"><div class="connection-icon" style="background:var(--accent-purple-dim);color:var(--accent-purple)">&#x1F4C5;</div><div><div class="connection-name">Local Events</div><div class="connection-account">Eventbrite + City Calendar</div></div></div>
+            <div class="connection-status off"><div class="connection-status-dot" style="background:var(--text-muted)"></div>Not connected</div>
+            <button class="connect-btn">+ Connect Events</button>
+        </div>
+        <div class="connection-card pending">
+            <div class="connection-header"><div class="connection-icon" style="background:var(--accent-blue-dim);color:var(--accent-blue)">&#x1F310;</div><div><div class="connection-name">Website</div><div class="connection-account">eatfirecraft.com</div></div></div>
+            <div class="connection-status off"><div class="connection-status-dot" style="background:var(--text-muted)"></div>Not connected</div>
+            <button class="connect-btn">+ Connect Website</button>
+        </div>
+    </div>
+</div>
+
+<!-- SUB-TAB 2: Posts -->
+<div class="tab-panel" id="panel-posts">
+    <div style="margin-bottom:16px"><h2 style="font-size:16px;font-weight:700">Auto-Generated Posts</h2><p style="font-size:12px;color:var(--text-muted);margin-top:2px">Created from today's cart assignments. Edit or let them auto-post.</p></div>
+    <div class="social-post">
+        <div class="social-post-badge">Auto-generated &middot; 8:00 AM</div>
+        <div class="social-post-header"><div class="social-post-avatar">&#x1F525;</div><div><div class="social-post-name">Fire Craft BBQ Hot Dogs</div><div class="social-post-time">Scheduled: Today 8:00 AM &rarr; Facebook + Instagram</div></div></div>
+        <div class="social-post-body">
+            &#x1F525; <strong>FIND US TODAY!</strong><br><br>
+            &#x1F4CD; <strong>Cart 1</strong> &mdash; Solano County Courthouse<br>&nbsp;&nbsp;&nbsp;&nbsp;10 AM &ndash; 3 PM &middot; Poncho on the grill<br><br>
+            &#x1F4CD; <strong>Cart 2</strong> &mdash; Vacaville DMV<br>&nbsp;&nbsp;&nbsp;&nbsp;10 AM &ndash; 2 PM &middot; Juan servin' heat<br><br>
+            &#x1F4CD; <strong>Cart 3</strong> &mdash; Downtown Farmers Market<br>&nbsp;&nbsp;&nbsp;&nbsp;9 AM &ndash; 1 PM &middot; Fresh brisket dogs!<br><br>
+            &#x1F32D; Today's Special: <span class="social-post-tag">Jalape&ntilde;o Cheddar Brisket Dog</span><br><br>
+            &#x1F4F1; Text HOTDOG to 555-0123 for $2 off!
+        </div>
+        <div class="social-post-map">
+            <div class="social-post-map-grid"></div>
+            <div class="social-post-map-pin" style="top:30%;left:25%">&#x1F4CD;</div><div class="social-post-map-label" style="top:35%;left:28%">Courthouse</div>
+            <div class="social-post-map-pin" style="top:25%;left:65%">&#x1F4CD;</div><div class="social-post-map-label" style="top:30%;left:68%">DMV</div>
+            <div class="social-post-map-pin" style="top:65%;left:50%">&#x1F4CD;</div><div class="social-post-map-label" style="top:70%;left:53%">Farmers Mkt</div>
+        </div>
+        <div class="social-post-actions"><span>&#9998;&#65039; Edit</span><span>&#9200; Reschedule</span><span>&#x1F680; Post Now</span><span style="margin-left:auto;color:var(--accent-green)">&#10003; Auto-posting in 47 min</span></div>
+    </div>
+    <div class="social-post" style="opacity:.7">
+        <div class="social-post-badge" style="background:var(--accent-blue-dim);color:var(--accent-blue)">Queued &middot; 11:30 AM</div>
+        <div class="social-post-header"><div class="social-post-avatar">&#x1F525;</div><div><div class="social-post-name">Fire Craft BBQ Hot Dogs</div><div class="social-post-time">Scheduled: Today 11:30 AM &rarr; Instagram Story</div></div></div>
+        <div class="social-post-body">&#x1F555; <strong>Lunch rush is ON!</strong> We're at the Courthouse and the line is forming. Come grab the best dogs in Vacaville! &#x1F525;<br><br>#VacavilleEats #FoodCart #FireCraftBBQ</div>
+    </div>
+</div>
+
+<!-- SUB-TAB 3: Calendar -->
+<div class="tab-panel" id="panel-calendar">
+    <div class="split">
+        <div class="card">
+            <div class="card-header"><div><div class="card-title">Posting Calendar &mdash; Feb 2026</div><div class="card-subtitle">Auto-posts from cart assignments</div></div></div>
+            <div class="cal-grid">
+                <div class="cal-hdr">Sun</div><div class="cal-hdr">Mon</div><div class="cal-hdr">Tue</div><div class="cal-hdr">Wed</div><div class="cal-hdr">Thu</div><div class="cal-hdr">Fri</div><div class="cal-hdr">Sat</div>
+                <div class="cal-d hp">1<div class="cal-dot" style="background:var(--fb-blue)"></div></div>
+                <div class="cal-d hp">2<div class="cal-dot" style="background:var(--ig-pink)"></div></div>
+                <div class="cal-d hp">3<div class="cal-dot" style="background:var(--fb-blue)"></div></div>
+                <div class="cal-d hp">4<div class="cal-dot" style="background:var(--fb-blue)"></div></div>
+                <div class="cal-d hp">5<div class="cal-dot" style="background:var(--ig-pink)"></div></div>
+                <div class="cal-d hp">6<div class="cal-dot" style="background:var(--fb-blue)"></div></div>
+                <div class="cal-d hp">7<div class="cal-dot" style="background:var(--accent-purple)"></div></div>
+                <div class="cal-d hp">8<div class="cal-dot" style="background:var(--ig-pink)"></div></div>
+                <div class="cal-d hp">9<div class="cal-dot" style="background:var(--fb-blue)"></div></div>
+                <div class="cal-d hp">10<div class="cal-dot" style="background:var(--fb-blue)"></div></div>
+                <div class="cal-d hp">11<div class="cal-dot" style="background:var(--ig-pink)"></div></div>
+                <div class="cal-d hp today">12<div class="cal-dot" style="background:var(--accent-fire)"></div></div>
+                <div class="cal-d hp">13<div class="cal-dot" style="background:var(--fb-blue)"></div></div>
+                <div class="cal-d hp">14<div class="cal-dot" style="background:var(--accent-purple)"></div></div>
+                <div class="cal-d">15</div>
+                <div class="cal-d hp">16<div class="cal-dot" style="background:var(--fb-blue)"></div></div>
+                <div class="cal-d hp">17<div class="cal-dot" style="background:var(--ig-pink)"></div></div>
+                <div class="cal-d hp">18<div class="cal-dot" style="background:var(--fb-blue)"></div></div>
+                <div class="cal-d hp">19<div class="cal-dot" style="background:var(--fb-blue)"></div></div>
+                <div class="cal-d hp">20<div class="cal-dot" style="background:var(--ig-pink)"></div></div>
+                <div class="cal-d hp">21<div class="cal-dot" style="background:var(--accent-purple)"></div></div>
+                <div class="cal-d">22</div><div class="cal-d">23</div>
+                <div class="cal-d hp">24<div class="cal-dot" style="background:var(--fb-blue)"></div></div>
+                <div class="cal-d hp">25<div class="cal-dot" style="background:var(--ig-pink)"></div></div>
+                <div class="cal-d hp">26<div class="cal-dot" style="background:var(--fb-blue)"></div></div>
+                <div class="cal-d hp">27<div class="cal-dot" style="background:var(--fb-blue)"></div></div>
+                <div class="cal-d hp">28<div class="cal-dot" style="background:var(--accent-purple)"></div></div>
+            </div>
+            <div style="display:flex;gap:12px;margin-top:14px;font-size:10px;color:var(--text-muted)">
+                <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;background:var(--fb-blue)"></span>Facebook</span>
+                <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;background:var(--ig-pink)"></span>Instagram</span>
+                <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;background:var(--accent-purple)"></span>Event</span>
+                <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;background:var(--accent-fire)"></span>Today</span>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><div class="card-title">This Week</div></div>
+            <div style="font-size:12px;line-height:1.8;color:var(--text-secondary)">
+                <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span>&#x1F4DD; Morning posts</span><span style="font-family:'Space Mono';color:var(--accent-green)">6/6</span></div>
+                <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span>&#x1F4F8; Instagram stories</span><span style="font-family:'Space Mono';color:var(--accent-green)">5/6</span></div>
+                <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span>&#11088; Reviews replied</span><span style="font-family:'Space Mono';color:var(--accent-fire)">3/4</span></div>
+                <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span>&#x1F4F1; SMS campaigns</span><span style="font-family:'Space Mono';color:var(--accent-green)">2/2</span></div>
+                <div style="display:flex;justify-content:space-between;padding:6px 0"><span>&#x1F3AA; Events detected</span><span style="font-family:'Space Mono';color:var(--accent-purple)">3 upcoming</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SUB-TAB 4: Feed -->
+<div class="tab-panel" id="panel-feed">
+    <div class="metrics-row">
+        <div class="metric-card"><div class="metric-label">Total Reach</div><div class="metric-value" style="color:var(--accent-blue)">3.2K</div><div class="metric-change up">&uarr; 28% this week</div></div>
+        <div class="metric-card"><div class="metric-label">Reviews</div><div class="metric-value" style="color:var(--google-yellow)">4.7&#9733;</div><div class="metric-change up">&uarr; 3 new</div></div>
+        <div class="metric-card"><div class="metric-label">SMS Subs</div><div class="metric-value" style="color:var(--accent-green)">186</div><div class="metric-change up">&uarr; 12 new</div></div>
+        <div class="metric-card"><div class="metric-label">Social Orders</div><div class="metric-value" style="color:var(--accent-fire)">24</div><div class="metric-change up">&uarr; $418 rev</div></div>
+    </div>
+    <div class="card">
+        <div class="card-header"><div><div class="card-title">All Sources &mdash; Live Feed</div><div class="card-subtitle">Reviews, mentions, engagement from all platforms</div></div></div>
+        <div class="feed-item"><div class="feed-icon" style="background:rgba(211,35,35,.15);color:var(--yelp-red)">&#9733;</div><div><div class="feed-source" style="color:var(--yelp-red)">Yelp Review</div><div class="feed-text">"Best hot dogs in Solano County! The jalape&ntilde;o cheddar brisket dog is incredible. Found them at the courthouse and now I'm hooked."</div><div style="display:flex;gap:2px;margin-top:4px"><span class="feed-star">&#9733;</span><span class="feed-star">&#9733;</span><span class="feed-star">&#9733;</span><span class="feed-star">&#9733;</span><span class="feed-star">&#9733;</span></div><div class="feed-time">2 hours ago &middot; Auto-reply sent &#10003;</div></div></div>
+        <div class="feed-item"><div class="feed-icon" style="background:rgba(251,188,5,.15);color:var(--google-yellow)">G</div><div><div class="feed-source" style="color:var(--google-yellow)">Google Review</div><div class="feed-text">"Great food and friendly service. Poncho knows how to make a dog! Will be back."</div><div style="display:flex;gap:2px;margin-top:4px"><span class="feed-star">&#9733;</span><span class="feed-star">&#9733;</span><span class="feed-star">&#9733;</span><span class="feed-star">&#9733;</span><span class="feed-star" style="opacity:.3">&#9733;</span></div><div class="feed-time">5 hours ago &middot; Needs reply</div></div></div>
+        <div class="feed-item"><div class="feed-icon" style="background:rgba(24,119,242,.15);color:var(--fb-blue)">f</div><div><div class="feed-source" style="color:var(--fb-blue)">Facebook Comment</div><div class="feed-text">"Are you at the farmers market this Saturday? Want to bring the whole family!"</div><div class="feed-time">Yesterday &middot; Auto-replied with Saturday schedule &#10003;</div></div></div>
+        <div class="feed-item"><div class="feed-icon" style="background:rgba(228,64,95,.15);color:var(--ig-pink)">&#x1F4F8;</div><div><div class="feed-source" style="color:var(--ig-pink)">Instagram Mention</div><div class="feed-text">@vacaville_foodie tagged you: "lunch is served &#x1F525;&#x1F32D; @eatfirecraft never disappoints"</div><div class="feed-time">Yesterday &middot; Liked + Reposted &#10003;</div></div></div>
+    </div>
+</div>
+
+<!-- SUB-TAB 5: Events -->
+<div class="tab-panel" id="panel-events">
+    <div style="background:linear-gradient(135deg,rgba(168,85,247,.1),rgba(59,130,246,.05));border:1px solid rgba(168,85,247,.3);border-radius:var(--radius);padding:20px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px"><div style="width:36px;height:36px;border-radius:10px;background:var(--accent-purple-dim);display:flex;align-items:center;justify-content:center;font-size:18px">&#x1F3AA;</div><div><div style="font-size:15px;font-weight:700">3 Events Detected This Weekend</div><div style="font-size:11px;color:var(--text-muted)">Scraped from Facebook Groups, Eventbrite, City Calendar</div></div></div>
+    </div>
+    <div class="card" style="padding:20px">
+        <div style="display:flex;align-items:flex-start;gap:14px;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px">
+            <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent-purple-dim),rgba(59,130,246,.1));display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">&#x1F3B5;</div>
+            <div style="flex:1"><div style="font-size:14px;font-weight:700">Jazz in the Park Festival</div><div style="font-size:12px;color:var(--text-muted);margin-top:2px">Saturday, Feb 14 &middot; 10 AM &ndash; 8 PM &middot; Town Square</div><div style="margin-top:8px"><span class="event-tag">&#x1F4CD; Downtown</span><span class="event-tag">&#x1F465; Est. 2,000</span><span class="event-tag" style="background:var(--accent-fire-dim);border-color:rgba(249,115,22,.3);color:var(--accent-fire)">&#x1F4B0; High Revenue</span></div><div style="margin-top:8px;font-size:11px;color:var(--text-secondary)">Source: <span style="color:var(--fb-blue)">Vacaville Community Events (FB Group)</span> + Eventbrite</div></div>
+            <div style="text-align:right"><div style="font-family:'Space Mono';font-size:16px;font-weight:700;color:var(--accent-green)">~$2,800</div><div style="font-size:10px;color:var(--text-muted)">projected/cart</div></div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:14px;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px">
+            <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent-green-dim),rgba(34,197,94,.05));display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">&#x1F3C3;</div>
+            <div style="flex:1"><div style="font-size:14px;font-weight:700">Vacaville Half Marathon</div><div style="font-size:12px;color:var(--text-muted);margin-top:2px">Sunday, Feb 15 &middot; 7 AM &ndash; 1 PM &middot; Creekwalk</div><div style="margin-top:8px"><span class="event-tag">&#x1F4CD; Leisure Town</span><span class="event-tag">&#x1F465; Est. 800</span><span class="event-tag">&#x1F324;&#65039; 82&deg;F Sunny</span></div><div style="margin-top:8px;font-size:11px;color:var(--text-secondary)">Source: City of Vacaville Events Calendar</div></div>
+            <div style="text-align:right"><div style="font-family:'Space Mono';font-size:16px;font-weight:700;color:var(--accent-green)">~$1,200</div><div style="font-size:10px;color:var(--text-muted)">projected/cart</div></div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:14px">
+            <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent-fire-dim),rgba(249,115,22,.05));display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">&#x1F377;</div>
+            <div style="flex:1"><div style="font-size:14px;font-weight:700">Shed Creek Cellars Wine Tasting</div><div style="font-size:12px;color:var(--text-muted);margin-top:2px">Friday, Feb 13 &middot; 5 PM &ndash; 9 PM &middot; Suisun Valley</div><div style="margin-top:8px"><span class="event-tag">&#x1F4CD; Suisun Valley</span><span class="event-tag">&#x1F465; Est. 150</span><span class="event-tag">&#x1F377; Wine pairing</span></div><div style="margin-top:8px;font-size:11px;color:var(--text-secondary)">Source: <span style="color:var(--ig-pink)">@shedcreekcellars (IG)</span> + Google Business</div></div>
+            <div style="text-align:right"><div style="font-family:'Space Mono';font-size:16px;font-weight:700;color:var(--accent-green)">~$650</div><div style="font-size:10px;color:var(--text-muted)">projected/cart</div></div>
+        </div>
+    </div>
+    <div style="background:linear-gradient(135deg,rgba(34,197,94,.08),rgba(34,197,94,.03));border:1px solid rgba(34,197,94,.25);border-radius:var(--radius);padding:16px;display:flex;align-items:center;gap:14px">
+        <div style="font-size:24px">&#x1F4A1;</div>
+        <div><div style="font-size:13px;font-weight:700">Weekend Revenue Opportunity</div><div style="font-size:12px;color:var(--text-secondary);margin-top:2px">Deploy all 3 carts across events for projected <strong style="color:var(--accent-green);font-family:'Space Mono'">$4,650</strong> weekend &mdash; <strong style="color:var(--accent-fire);font-family:'Space Mono'">3.1x</strong> normal.</div></div>
+    </div>
+</div>
+
+</div>
+
+<!-- OAuth Modal (hidden by default) -->
+<div class="oauth-overlay" id="oauthModal">
+    <div class="oauth-modal">
+        <div class="oauth-brand" style="background:linear-gradient(135deg,rgba(24,119,242,.08),rgba(24,119,242,.02))">
+            <div class="oauth-brand-icon" style="background:rgba(24,119,242,.15);color:var(--fb-blue);font-weight:800">f</div>
+            <div class="oauth-brand-name">Connect Facebook</div>
+            <div class="oauth-brand-sub">FoodCartOS wants to access your Facebook Page</div>
+        </div>
+        <div class="oauth-body">
+            <div style="margin-bottom:16px">
+                <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">Connecting as:</div>
+                <div style="display:flex;align-items:center;gap:10px;background:var(--bg-primary);padding:10px 14px;border-radius:var(--radius-sm);border:1px solid var(--border)">
+                    <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--accent-fire),#dc2626);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">FC</div>
+                    <div><div style="font-size:13px;font-weight:600">Fire Craft BBQ Hot Dogs</div><div style="font-size:11px;color:var(--text-muted)">Vacaville, CA &middot; Food Truck</div></div>
+                </div>
+            </div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">FoodCartOS will be able to:</div>
+            <div class="oauth-perm"><div class="oauth-perm-icon">&#10003;</div><span>Post daily location updates to your page</span></div>
+            <div class="oauth-perm"><div class="oauth-perm-icon">&#10003;</div><span>Read page insights &amp; engagement metrics</span></div>
+            <div class="oauth-perm"><div class="oauth-perm-icon">&#10003;</div><span>Monitor comments &amp; messages for orders</span></div>
+            <div class="oauth-perm"><div class="oauth-perm-icon">&#10003;</div><span>Detect events from local community groups</span></div>
+            <div class="oauth-perm"><div class="oauth-perm-icon">&#10003;</div><span>Schedule promotional posts &amp; specials</span></div>
+        </div>
+        <div class="oauth-footer"><button class="oauth-btn secondary" onclick="document.getElementById('oauthModal').classList.remove('active')">Cancel</button><button class="oauth-btn primary" onclick="document.getElementById('oauthModal').classList.remove('active')">Connect Facebook Page</button></div>
+    </div>
+</div>
+
+<script>
+    // Sub-tab switching
+    document.querySelectorAll('[data-subtab]').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('[data-subtab]').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+        });
+    });
+</script>
+</body>
+</html>
