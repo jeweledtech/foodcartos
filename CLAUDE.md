@@ -43,6 +43,7 @@ Poncho was losing $19,760/year by going to the courthouse on Wednesdays ($510) i
 | `app/templates/dashboard/social.html` | Dark-themed social & data sources dashboard (standalone, not base.html) |
 | `make_gif.py` | PIL-based animated GIF stitcher for demo walkthroughs |
 | `docs/session-logs/` | Detailed session logs for continuity |
+| `docs/architecture/architecture-knowledge.md` | Full architecture & project knowledge doc (for Claude Desktop) |
 
 ## Development Status
 
@@ -85,12 +86,26 @@ Poncho was losing $19,760/year by going to the courthouse on Wednesdays ($510) i
 
 ## Database Architecture
 
-FoodCartOS uses a dedicated `foodcartos` schema within the shared `jeweledtech` Supabase project. This allows:
-- Complete isolation from other apps (like agentic-framework)
+FoodCartOS uses a dedicated `foodcartos` schema within the shared Supabase project (also used by `jeweledtech`). This allows:
+- Complete isolation from other apps
 - Future integration possibility by granting cross-schema access
 - Single Supabase project, multiple applications
 
+**Shared Supabase instance:** The Supabase security linter shows warnings from both projects. Only `foodcartos.*` warnings are relevant here; `public.*` warnings belong to jeweledtech.
+
 **Future consideration:** The agentic-framework may eventually be granted access to the foodcartos schema to provide AI-powered features (location recommendations, pattern analysis, automated marketing).
+
+### Security Fix: Migration 20240101000007
+**Date:** 2026-02-17
+**Migration file:** `supabase/migrations/20240101000007_fix_security_warnings.sql`
+
+Fixed two categories of Supabase security linter warnings:
+
+**1. `function_search_path_mutable` (5 functions):**
+Added `SET search_path = 'foodcartos'` to all functions (`update_updated_at`, `update_orders_updated_at`, `get_user_org_id`, `get_user_role`, `get_user_id`). Without this, a malicious user could create identically-named functions in another schema to hijack execution.
+
+**2. `rls_policy_always_true` (4 policies dropped):**
+Dropped INSERT policies with `WITH CHECK (TRUE)` on `organizations`, `transactions`, `gps_pings`, and `sms_messages`. These were named for service_role operations but `service_role` bypasses RLS entirely — the policies were redundant and accidentally allowed any role to insert. After dropping, only `service_role` (which bypasses RLS) can insert into these tables.
 
 ## Service Architecture
 
@@ -125,6 +140,8 @@ All platforms normalize to a unified order format stored in the `orders` table.
 
 ## Gotchas
 
+- **RLS + GRANTs**: Supabase requires BOTH an RLS policy AND a `GRANT` for a role to access a table. Missing either causes 401/403 errors.
+- **`service_role` bypasses RLS**: Don't create INSERT policies "for service role" with `WITH CHECK (TRUE)` — service_role ignores RLS entirely, so such policies just accidentally open the table to `anon`/`authenticated`.
 - **Square SDK v33+**: Use `from square import Square` and `Square(token=...)` — old `Client` import is gone
 - **bcrypt**: Use `bcrypt.hashpw()`/`bcrypt.checkpw()` directly — passlib 1.7.4 is incompatible with bcrypt >=4.1
 - **Page routes need admin services**: `use_admin=True` bypasses RLS since session cookies don't carry JWT claims
